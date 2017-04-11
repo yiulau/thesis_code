@@ -22,23 +22,24 @@ class hmc_sampler(object):
     def resample(self):
         return(numpy.random.normal(size=self.dim))
     def sample(self):
-        self.initp = self.resample()
-        self.p = self.initp
-        self.p = self.p - self.ep * self.gradU(q)/2.0
-        for i in range(0,L):
+        initp = self.resample()
+        initq = self.q
+        p = initp
+        p = p - self.ep * self.gradU(self.q)/2.0
+        for i in range(0,self.L):
             self.q = self.q + self.ep * p
-            if i!=L:
-                self.p = self.p - self.ep * self.gradU(q)
-        self.p = self.p - self.ep * self.gradU(q)/2.0
-        self.curU = self.U(q)
-        self.curK = self.K(q)
-        self.initU = self.U(self.initq)
-        self.initK = self.K(self.initp)
+            if i!=self.L:
+                p = p - self.ep * self.gradU(self.q)
+        p = p - self.ep * self.gradU(self.q)/2.0
+        curU = self.U(self.q)
+        curK = self.K(self.q)
+        initU = self.U(initq)
+        initK = self.K(initp)
 
-        acceptance = accept_f(self.curU,self.curK,self.initU,self.initK)
+        acceptance = accept(curU,curK,initU,initK)
         if acceptance:
             return((acceptance,self.q))
         else:
-            return((acceptance,self.initq))
+            return((acceptance,initq))
 
 
