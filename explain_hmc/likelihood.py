@@ -9,6 +9,5 @@ class likelihood(object):
         pass
     @abc.abstractmethod
     def log_grad(self):
-        pass
-
-
+       pass
+    
