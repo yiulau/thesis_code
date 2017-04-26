@@ -12,7 +12,7 @@ class hmc_sampler(object):
         self.q = init_q
         self.dim = init_q.shape[0] 
     def U(self,x):
-        return(-(log(self.likobj.lik(x))+log(self.prior.lik(x))))
+        return(-self.likobj.log_lik(x)-self.prior.log_lik(x))
     
     def gradU(self,x):
         return(self.likobj.log_grad(x) + self.prior.log_grad(x))
@@ -27,16 +27,19 @@ class hmc_sampler(object):
         p = initp
         p = p - self.ep * self.gradU(self.q)/2.0
         for i in range(0,self.L):
+            #print(self.q)
+            #print(p)
             self.q = self.q + self.ep * p
-            if i!=self.L:
+            if i!=(self.L-1):
                 p = p - self.ep * self.gradU(self.q)
         p = p - self.ep * self.gradU(self.q)/2.0
+        #print(self.q)
         curU = self.U(self.q)
-        curK = self.K(self.q)
+        curK = self.K(p)
         initU = self.U(initq)
         initK = self.K(initp)
 
-        acceptance = accept(curU,curK,initU,initK)
+        acceptance = accept(curU=initU,proU=curU,curK=initK,proK=curK)
         if acceptance:
             return((acceptance,self.q))
         else:

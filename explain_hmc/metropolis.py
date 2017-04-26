@@ -1,5 +1,5 @@
 import numpy 
-from math import exp, log
+from math import exp, log, sqrt
 class metropolis(object):
     def __init__(self,initq,sigma2,target,chain_L):
         self.sigma2 = sigma2
@@ -11,13 +11,14 @@ class metropolis(object):
     def sample(self):
         for i in range(0,self.chain_L):
             curq = self.q
-            propq = self.sigma2*numpy.random.normal(size=curq.shape) + curq
-            acceptance_prob = min(1,exp(log(self.target(propq))-log(self.target(curq))))
+            propq = sqrt(self.sigma2)*numpy.random.normal(size=curq.shape) + curq
+            acceptance_prob = min(1,exp(self.target(propq)-self.target(curq)))
             accept = numpy.random.uniform()<acceptance_prob
             if accept:
                 newq = propq
             else:
                 newq = curq
+            self.q = newq
             self.store_matrix[i,0] = accept
             self.store_matrix[i,1] = newq
         return

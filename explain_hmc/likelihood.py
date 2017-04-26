@@ -5,7 +5,7 @@ class likelihood(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def lik(self):
+    def log_lik(self):
         pass
     @abc.abstractmethod
     def log_grad(self):
