@@ -49,11 +49,63 @@ def dphidq(lam,alpha,dH,Q,dV):
     return(delta)
 
 
+def eigen(H):
+    out = torch.eig(H,True)
+    return(out[0][:,0],out[1])
 
+input = torch.rand(2,2)
+input = torch.mm(input,torch.t(input))
+out = eigen(input)
+lam = out[0]
+Q = out[1]
+#print(input)
+#print(torch.mm(Q,torch.mm(torch.diag(lam),torch.t(Q))))
+# generate_momentum need ot be tested for correctness
+def generate_momentum(alpha,lam,Q):
+    # generate by multiplying st normal by QV^(0.5) where Sig = QVQ^T
+    temp = torch.mm(Q,torch.diag(1./torch.sqrt(softabs_map(lam,alpha))))
+    out = torch.mv(temp,torch.randn(len(lam)))
+    return(out)
 
-
-
-
+def getH(q):
+    length = len(q)
+    input = torch.rand(length,length)
+    input = torch.mm(input,torch.t(input))
+    return(input)
+def getdH(q):
+    length = len(q)
+    return(torch.rand(length,length,length))
+def getdV(q):
+    length = len(q)
+    return(torch.rand(length))
+def generalized_leapfrog(q,epsilon,alpha,delta):
+    lam,Q = eigen(getH(q))
+    dH = getdH(q)
+    dV = getdV(q)
+    p = generate_momentum(alpha,lam,Q)
+    p = p - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV)
+    rho = p.clone()
+    pprime = p.clone()
+    deltap = delta + 0.5
+    while deltap > delta:
+        pprime = rho - epsilon * 0.5 * dtaudq(p,dH,Q,lam,alpha)
+        deltap = torch.max(torch.abs(p-pprime))
+        p = pprime.clone()
+    sigma = q.clone()
+    qprime = q.clone()
+    deltaq = delta + 0.5
+    olam,oQ = eigen(getH(sigma))
+    while deltaq > delta:
+        lam,Q = eigen(getH(q))
+        qprime = sigma + 0.5 * dtaudp(p,alpha,olam,oQ) + 0.5 * dtaudp(p,alpha,lam,Q)
+        deltaq = torch.max(torch.abs(q-qprime))
+        q = qprime.clone()
+    dH = getdH(q)
+    dV = getdV(q)
+    lam,Q = eigen(getH(q))
+    p = p - 0.5 * dtaudq(p,dH,Q,lam,alpha)
+    p = p - 0.5 * dphidq(lam,alpha,dH,Q,dV)
+    return(q,p)
 
 
 
