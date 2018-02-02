@@ -78,11 +78,11 @@ def getdH(q):
 def getdV(q):
     length = len(q)
     return(torch.rand(length))
-def generalized_leapfrog(q,epsilon,alpha,delta):
+def generalized_leapfrog(q,p,epsilon,alpha,delta):
     lam,Q = eigen(getH(q))
     dH = getdH(q)
     dV = getdV(q)
-    p = generate_momentum(alpha,lam,Q)
+    #p = generate_momentum(alpha,lam,Q)
     p = p - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV)
     rho = p.clone()
     pprime = p.clone()

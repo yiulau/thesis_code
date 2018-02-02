@@ -1,6 +1,6 @@
 import numpy
 import torch
-def NUTS(q_init,epsilon):
+def NUTS(q_init,epsilon,pi,NUTS_criterion):
     p = torch.randn(len(q_init))
     q_left = q_init.clone()
     q_right = q_init.clone()
@@ -26,7 +26,7 @@ def NUTS(q_init,epsilon):
             j = j + 1
     return(q_prop)
 
-def BuildTree(q,p,v,j,epsilon):
+def BuildTree(q,p,v,j,epsilon,leapfrog,pi,NUTS_criterion):
     if j ==0:
         q_prime,p_prime = leapfrog(q,p,v*epsilon)
         w_prime = pi(q_prime,p_prime)
