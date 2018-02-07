@@ -53,12 +53,13 @@ def leapfrog(q,p,epsilon,pi):
     q_prime = Variable(q.data.clone(),requires_grad=True)
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data = p_prime.data + q_prime.grad.data * 0.5
+    p_prime.data = p_prime.data - q_prime.grad.data * 0.5
     q_prime.grad.data.zero_()
     q_prime.data = q_prime.data + epsilon * p_prime.data
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data = p_prime.data + q_prime.grad.data * 0.5
+    p_prime.data = p_prime.data - q_prime.grad.data * 0.5
+    q_prime.grad.data.zero_()
     return(q_prime,p_prime)
 
 def pi(q,p):
@@ -73,6 +74,25 @@ def NUTS_criterion(q_left,q_right,p_left,p_right):
     return(o)
 
 
+def HMC_alt(epsilon, L, current_q, leapfrog, pi):
+    p = Variable(torch.randn(len(current_q)), requires_grad=True)
+    q = Variable(current_q.data.clone(), requires_grad=True)
+    current_H = pi(p, q)
+    for i in range(L):
+        temp_q, temp_p = leapfrog(q, p, epsilon, pi)
+        q, p = temp_q, temp_p
+
+    proposed_H = pi(p, q)
+    temp = torch.exp(current_H - proposed_H)
+
+    print("current H is {}".format(current_H))
+    print("proposed H is {}".format(proposed_H))
+    print("temp is {}".format(temp))
+    if (numpy.random.random(1) < temp.data.numpy()):
+        return (q)
+    else:
+        return (current_q)
+
 
 #H = pi(q_prime, p_prime)
 #H = torch.dot(q,q) * 0.5 + torch.dot(p,p) * 0.5
@@ -81,6 +101,23 @@ def NUTS_criterion(q_left,q_right,p_left,p_right):
 ##p_prime.data = p_prime.data + q_prime.grad.data * 0.5
 #exit()
 q = Variable(torch.randn(2),requires_grad=True)
+
+chain_l = 50
+store = torch.zeros((chain_l,2))
+
+for i in range(chain_l):
+    print("round {}".format(i))
+    #out = HMC(0.1,10,q)
+    out = HMC_alt(0.1,10,q,leapfrog,pi)
+    store[i,]=out.data
+    q.data = out.data
+
+store = store.numpy()
+empCov = numpy.cov(store,rowvar=False)
+emmean = numpy.mean(store,axis=0)
+print(empCov)
+print(emmean)
+exit()
 p = Variable(torch.randn(2),requires_grad=True)
 q.data = q.data + 0.1 * p.data
 v=(numpy.random.randn(1)>0)*2 -1
