@@ -3,12 +3,12 @@ import torch
 from torch.autograd import Variable
 def NUTS(q_init,epsilon,pi,leapfrog,NUTS_criterion):
     p = Variable(torch.randn(len(q_init)),requires_grad=True)
-    q_left = q_init.clone()
-    q_right = q_init.clone()
-    p_left = p.clone()
-    p_right = p.clone()
+    q_left = Variable(q_init.data.clone(),requires_grad=True)
+    q_right = Variable(q_init.data.clone(),requires_grad=True)
+    p_left = Variable(p.data.clone(),requires_grad=True)
+    p_right = Variable(p.data.clone(),requires_grad=True)
     j = 0
-    q_prop = q_init.clone()
+    q_prop = Variable(q_init.data.clone(),requires_grad=True)
     w = torch.exp(-pi(q_init,p))
     s = True
     while s:
@@ -25,7 +25,8 @@ def NUTS(q_init,epsilon,pi,leapfrog,NUTS_criterion):
             w = w + w_prime
             s = s and NUTS_criterion(q_left,q_right,p_left,p_right)
             j = j + 1
-    return(q_prop)
+            s = s and (j<6)
+    return(q_prop,j)
 
 def BuildTree(q,p,v,j,epsilon,leapfrog,pi,NUTS_criterion):
     if j ==0:
@@ -93,5 +94,18 @@ v=(numpy.random.randn(1)>0)*2 -1
 #print(NUTS_criterion(q+1,q,p+1,p))
 
 #print(BuildTree(q,p,-1,1,0.1,leapfrog,pi,NUTS_criterion))
+chain_l = 200
+store = torch.zeros((chain_l,2))
+for i in range(chain_l):
+    out = NUTS(q,0.2,pi,leapfrog,NUTS_criterion)
+    store[i,:] = out[0].data
+    q.data = store[i,:]
+    print(q.data)
+    print("Round {} depth is {}".format(i,out[1]))
 
-print(NUTS(q,0.1,pi,leapfrog,NUTS_criterion))
+store = store.numpy()
+empCov = numpy.cov(store,rowvar=False)
+emmean = numpy.mean(store,axis=0)
+
+print(empCov)
+print(emmean)
