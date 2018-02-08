@@ -46,7 +46,7 @@ def BuildTree(q,p,v,j,epsilon,leapfrog,pi,NUTS_criterion):
                 q_prime.data = q_dprime.data.clone()
             s_prime = s_dprime and NUTS_criterion(q_left,q_right,p_left,p_right)
             w_prime = w_prime + w_dprime
-        return q_left,p_left,p_left,p_right,q_prime,s_prime,w_prime
+        return q_left,p_left,q_right,p_right,q_prime,s_prime,w_prime
 
 def leapfrog(q,p,epsilon,pi):
     p_prime = Variable(p.data.clone(),requires_grad=False)
@@ -128,19 +128,19 @@ p = Variable(torch.randn(2),requires_grad=True)
 #print("output of leapfrog is {}".format(out1))
 #print("output of leapfrog_explicity is {}".format(out2))
 #exit()
-chain_l = 500
+chain_l = 1000
 store = torch.zeros((chain_l,2))
 
 for i in range(chain_l):
     print("round {}".format(i))
     #out = HMC(0.1,10,q)
-    #out = HMC_alt(0.1,10,q,leapfrog,pi)
-    out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
-    print("tree depth is {}".format(out[1]))
-    store[i,] = out[0].data
-    #store[i,]=out.data
-    #q.data = out.data
-    q.data = out[0].data
+    out = HMC_alt(0.1,10,q,leapfrog,pi)
+    #out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
+    #print("tree depth is {}".format(out[1]))
+    #store[i,] = out[0].data
+    store[i,]=out.data
+    q.data = out.data
+    #q.data = out[0].data
 
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
