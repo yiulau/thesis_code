@@ -21,7 +21,7 @@ def NUTS(q_init,epsilon,pi,leapfrog,NUTS_criterion):
             accep_rate = min(1,(w_prime/w).data.numpy())
             u = numpy.random.rand(1)
             if u < accep_rate:
-                q_prop = q_prime
+                q_prop.data = q_prime.data.clone()
             w = w + w_prime
             s = s and NUTS_criterion(q_left,q_right,p_left,p_right)
             j = j + 1
@@ -36,14 +36,14 @@ def BuildTree(q,p,v,j,epsilon,leapfrog,pi,NUTS_criterion):
     else:
         q_left,p_left,q_right,p_right,q_prime,s_prime,w_prime = BuildTree(q,p,v,j-1,epsilon,leapfrog,pi,NUTS_criterion)
         if s_prime:
-            if v ==-1:
+            if v <0:
                 q_left,p_left,_,_,q_dprime,s_dprime,w_dprime = BuildTree(q_left,p_left,v,j-1,epsilon,leapfrog,pi,NUTS_criterion)
             else:
                 _,_,q_right,p_right,q_dprime,s_dprime,w_dprime = BuildTree(q_right,p_right,v,j-1,epsilon,leapfrog,pi,NUTS_criterion)
             accep_rate = min(1,(w_dprime/(w_prime+w_dprime)).data.numpy())
             u = numpy.random.rand(1)
             if u < accep_rate:
-                q_prime = q_dprime.clone()
+                q_prime.data = q_dprime.data.clone()
             s_prime = s_dprime and NUTS_criterion(q_left,q_right,p_left,p_right)
             w_prime = w_prime + w_dprime
         return q_left,p_left,p_left,p_right,q_prime,s_prime,w_prime
