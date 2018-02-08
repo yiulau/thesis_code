@@ -49,18 +49,35 @@ def BuildTree(q,p,v,j,epsilon,leapfrog,pi,NUTS_criterion):
         return q_left,p_left,p_left,p_right,q_prime,s_prime,w_prime
 
 def leapfrog(q,p,epsilon,pi):
-    p_prime = Variable(p.data.clone(),requires_grad=True)
+    p_prime = Variable(p.data.clone(),requires_grad=False)
     q_prime = Variable(q.data.clone(),requires_grad=True)
+    #print(q_prime.data,p_prime.data)
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data = p_prime.data - q_prime.grad.data * 0.5
+    p_prime.data -= q_prime.grad.data * 0.5
+    #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
-    q_prime.data = q_prime.data + epsilon * p_prime.data
+    q_prime.data += epsilon * p_prime.data
+    #print(q_prime.data,p_prime.data)
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data = p_prime.data - q_prime.grad.data * 0.5
+    p_prime.data -= q_prime.grad.data * 0.5
+    #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
     return(q_prime,p_prime)
+
+def leapfrog_explicit(q,p,epsilon,pi):
+    p_prime = Variable(p.data.clone())
+    q_prime = Variable(q.data.clone())
+    #print(q_prime.data,p_prime.data)
+    p_prime.data -= q_prime.data * 0.5
+    #print(q_prime.data,p_prime.data)
+    q_prime.data += epsilon * p_prime.data
+    #print(q_prime.data,p_prime.data)
+    p_prime.data -=q_prime.data * 0.5
+    #print(q_prime.data,p_prime.data)
+    return(q_prime,p_prime)
+
 
 def pi(q,p):
     H = torch.dot(q,q) * 0.5 + torch.dot(p,p) * 0.5
@@ -77,12 +94,12 @@ def NUTS_criterion(q_left,q_right,p_left,p_right):
 def HMC_alt(epsilon, L, current_q, leapfrog, pi):
     p = Variable(torch.randn(len(current_q)), requires_grad=True)
     q = Variable(current_q.data.clone(), requires_grad=True)
-    current_H = pi(p, q)
-    for i in range(L):
+    current_H = pi(q, p)
+    for _ in range(L):
         temp_q, temp_p = leapfrog(q, p, epsilon, pi)
-        q, p = temp_q, temp_p
+        q.data, p.data = temp_q.data.clone(), temp_p.data.clone()
 
-    proposed_H = pi(p, q)
+    proposed_H = pi(q, p)
     temp = torch.exp(current_H - proposed_H)
 
     print("current H is {}".format(current_H))
@@ -101,8 +118,17 @@ def HMC_alt(epsilon, L, current_q, leapfrog, pi):
 ##p_prime.data = p_prime.data + q_prime.grad.data * 0.5
 #exit()
 q = Variable(torch.randn(2),requires_grad=True)
+p = Variable(torch.randn(2),requires_grad=True)
+#print("Leapfrog- inside")
+#out1 = leapfrog(q,p,0.1,pi)
 
-chain_l = 50
+#print("leapfrog_explicit-inside")
+#out2 = leapfrog_explicit(q,p,0.1)
+
+#print("output of leapfrog is {}".format(out1))
+#print("output of leapfrog_explicity is {}".format(out2))
+#exit()
+chain_l = 500
 store = torch.zeros((chain_l,2))
 
 for i in range(chain_l):
