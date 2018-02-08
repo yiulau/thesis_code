@@ -54,14 +54,14 @@ def leapfrog(q,p,epsilon,pi):
     #print(q_prime.data,p_prime.data)
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data -= q_prime.grad.data * 0.5
+    p_prime.data -= q_prime.grad.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
     q_prime.data += epsilon * p_prime.data
     #print(q_prime.data,p_prime.data)
     H = pi(q_prime,p_prime)
     H.backward()
-    p_prime.data -= q_prime.grad.data * 0.5
+    p_prime.data -= q_prime.grad.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
     return(q_prime,p_prime)
@@ -70,11 +70,11 @@ def leapfrog_explicit(q,p,epsilon,pi):
     p_prime = Variable(p.data.clone())
     q_prime = Variable(q.data.clone())
     #print(q_prime.data,p_prime.data)
-    p_prime.data -= q_prime.data * 0.5
+    p_prime.data -= q_prime.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     q_prime.data += epsilon * p_prime.data
     #print(q_prime.data,p_prime.data)
-    p_prime.data -=q_prime.data * 0.5
+    p_prime.data -=q_prime.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     return(q_prime,p_prime)
 
@@ -134,7 +134,7 @@ store = torch.zeros((chain_l,2))
 for i in range(chain_l):
     print("round {}".format(i))
     #out = HMC(0.1,10,q)
-    out = HMC_alt(0.1,10,q,leapfrog,pi)
+    out = HMC_alt(0.1,10,q,leapfrog_explicit,pi)
     store[i,]=out.data
     q.data = out.data
 

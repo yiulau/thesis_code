@@ -110,7 +110,8 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta):
 
 
 
+def rmhmc_step(initq,pi):
 
 
 
-
+    return(0)
