@@ -134,9 +134,13 @@ store = torch.zeros((chain_l,2))
 for i in range(chain_l):
     print("round {}".format(i))
     #out = HMC(0.1,10,q)
-    out = HMC_alt(0.1,10,q,leapfrog_explicit,pi)
-    store[i,]=out.data
-    q.data = out.data
+    #out = HMC_alt(0.1,10,q,leapfrog,pi)
+    out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
+    print("tree depth is {}".format(out[1]))
+    store[i,] = out[0].data
+    #store[i,]=out.data
+    #q.data = out.data
+    q.data = out[0].data
 
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
