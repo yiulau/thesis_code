@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch.autograd import Variable
 from math import exp
 def coth_torch(x):
     return((torch.exp(x) + torch.exp(-x))/(torch.exp(x)-torch.exp(-x)))
@@ -105,13 +106,19 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta):
     lam,Q = eigen(getH(q))
     p = p - 0.5 * dtaudq(p,dH,Q,lam,alpha)
     p = p - 0.5 * dphidq(lam,alpha,dH,Q,dV)
-    return(q,p)
+    return(q,p,H)
 
 
 
 
-def rmhmc_step(initq,pi):
-
-
-
-    return(0)
+def rmhmc_step(initq,H,epsilon,alpha,delta):
+    p = Variable(torch.randn(len(initq)),requires_grad=True)
+    q = Variable(initq.data,requires_grad=True)
+    current_H = H(q,p)
+    out = generalized_leapfrog(q,p,epsilon,alpha,delta)
+    proposed_H = out[2]
+    u = np.random.rand(1)
+    if u < np.exp(current_H - proposed_H):
+        return(out[0])
+    else:
+        return(q)
