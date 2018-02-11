@@ -84,19 +84,22 @@ def getH(q,V):
 def getdH(q,V):
     H = getH(q,V)
     dim = len(q)
-    dH = Variable(torch.zeros(dim, dim, dim))
+    #dH = Variable(torch.zeros(dim, dim, dim))
+    dH = torch.zeros(dim,dim,dim)
     for i in range(dim):
         for j in range(dim):
-            try:
-                dH[i, j, :] = grad(H[i, j], q, create_graph=True)[0]
-            except RuntimeError:
-                dH[i, j, :] = Variable(torch.zeros(len(q)))
+            #print(i,j)
+            dH[i, j, :] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
+            #try:
+            #    dH[i, j, :] = grad(H[i, j], q, create_graph=True)[0]
+            #except RuntimeError:
+            #    dH[i, j, :] = Variable(torch.zeros(len(q)))
 
     return(dH)
 
 def V(q):
     # returns variable if q is variable , returns float if q tensor (shouldn't need it tho)
-    return(0.5 * torch.dot(q,q))
+    return(0.5 * torch.dot(q,q*q))
 
 def T(q,p,alpha):
     H = getH(q,V)
@@ -175,11 +178,13 @@ def leapfrog(q,p,epsilon,pi):
     q_prime.grad.data.zero_()
     return(q_prime,p_prime)
 
-def rmhmc_step(initq,H,epsilon,alpha,delta):
+def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     p = Variable(torch.randn(len(initq)),requires_grad=True)
-    q = Variable(initq.data,requires_grad=True)
+    q = Variable(initq.data.clone(),requires_grad=True)
     current_H = H(q,p,alpha)
-    out = generalized_leapfrog(q,p,epsilon,alpha,delta)
+    for _ in range(L):
+        out = generalized_leapfrog(q,p,epsilon,alpha,delta,V)
+        q.data = out[0].data
     proposed_H = out[2]
     u = np.random.rand(1)
     if u < np.exp(current_H - proposed_H):
@@ -187,15 +192,36 @@ def rmhmc_step(initq,H,epsilon,alpha,delta):
     else:
         return(q)
 
-q = Variable(torch.randn(2),requires_grad=True)
-p =Variable(torch.randn(2),requires_grad=True)
-inv_exp_H = T(p,q,50)
-print("leapfrog")
-o = leapfrog(q,p,0.1,pi)
-print("generalized leapfrog")
-ou = generalized_leapfrog(q,p,0.1,50000,0.1,V)
-print(ou)
-print(o)
+q = Variable(torch.randn(20),requires_grad=True)
+p =Variable(torch.randn(20),requires_grad=True)
+#getdH(q,V)
+#lam, Q = eigen(getH(q, V).data)
+#inv_exp_H = T(p,q,50)
+#print("leapfrog")
+import time,cProfile
+#cProfile.run('leapfrog(q,p,0.1,pi)')
+#cProfile.run("generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)")
+#cProfile.run("J(lam,50000,200)")
+cProfile.run("getdH(q,V)")
+exit()
+rep = 10
+start = time.process_time()
+for _ in range(rep):
+    #lam, Q = eigen(getH(q, V).data)
+    #o = getdH(q,V)
+    #o = leapfrog(q,p,0.1,pi)
+    ou = generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)
+total = time.process_time() - start
+print(total/rep)
+exit()
+#print("generalized leapfrog")
+#ou = generalized_leapfrog(q,p,0.1,50000,0.1,V)
+#print(ou)
+#print(o)
+o2 = rmhmc_step(q,H,0.1,10,1000,0.1,V)
+print(q)
+print(o2)
+print(q)
 exit()
 #print(Q)
 #print(torch.mm(Q,torch.diag(temp)))
