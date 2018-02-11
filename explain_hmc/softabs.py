@@ -128,6 +128,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     lam,Q = eigen(getH(q,V).data)
     dH = getdH(q,V)
     dV = getdV(q,V)
+    print(dphidq(lam,alpha,dH,Q,dV.data))
     #print(dH,dV)
     #print(q,p)
     #p = generate_momentum(alpha,lam,Q)
@@ -135,7 +136,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     #print("should be {},get {}".format(q.data,tempout))
     p.data = p.data - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV.data)
     #p.data = p.data - epsilon * 0.5 * tempout
-    #print(q,p)
+    print(q,p)
     rho = p.data.clone()
     pprime = p.data.clone()
     deltap = delta + 0.5
@@ -158,9 +159,14 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
         deltaq = torch.max(torch.abs(q.data-qprime))
         q.data = qprime.clone()
     #print(q,p)
+
     dH = getdH(q,V)
     dV = getdV(q,V)
+
+    print("got here")
+
     lam,Q = eigen(getH(q,V).data)
+
     p.data = p.data - 0.5 * dtaudq(p.data,dH.data,Q,lam,alpha) * epsilon
     p.data = p.data - 0.5 * dphidq(lam,alpha,dH.data,Q,dV.data) * epsilon
     #print(q,p)
@@ -211,6 +217,7 @@ q = Variable(torch.randn(5),requires_grad=True)
 #print(o)
 #exit()
 p =Variable(torch.randn(5),requires_grad=True)
+generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)
 #getdH(q,V)
 #lam, Q = eigen(getH(q, V).data)
 #inv_exp_H = T(p,q,50)
