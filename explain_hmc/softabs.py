@@ -12,14 +12,22 @@ def softabs_map(lam,alpha):
     return(1/torch.tanh(lam*alpha))
 def J(lam,alpha,length):
     J = torch.zeros(length,length)
+    #mindif = 1
     for i in range(length):
         for j in range(length):
-            J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))*(1.-1*(i==j))+\
-                     (coth(alpha*lam[i]) + lam[i]*(1-coth(alpha*lam[i]))*alpha)*(1*(i==j))
+            if i!=j:
+                #dif = abs(lam[i]-lam[j])
+                #if dif < mindif:
+                    #mindif = dif
+                J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))
+            else:
+                J[i,j] = (coth(alpha*lam[i]) - lam[i]*(1-np.square(coth(alpha*lam[i])))*alpha)
+    #print("mindif is {}".format(mindif))
     return(J)
 
 def D(p,Q,lam,alpha):
-    return(torch.diag(torch.mv(torch.t(Q),p)/(lam*coth_torch(alpha*lam))))
+    #return(torch.diag(torch.mv(torch.t(Q),p)/(lam*coth_torch(alpha*lam))))
+    return (torch.diag(torch.mv(torch.t(Q), p)))
 def dtaudp(p,alpha,lam,Q):
     return(torch.mv(Q,(softabs_map(lam,alpha)*torch.mv(torch.t(Q),p))))
 
@@ -28,12 +36,16 @@ def dtaudp(p,alpha,lam,Q):
 def dtaudq(p,dH,Q,lam,alpha):
     N = len(p)
     Jm = J(lam,alpha,len(p))
+    #print("eigenvalues {}".format(lam))
+    #print("J {}".format(Jm))
     Dm = D(p,Q,lam,alpha)
+    #print("D {}".format(Dm))
     M = torch.mm(Q,torch.mm(Dm,torch.mm(Jm,torch.mm(Dm,torch.t(Q)))))
-
+    #print("M is {}".format(M))
     delta = torch.zeros(N)
     for i in range(N):
         delta[i] = 0.5 * torch.trace(-torch.mm(M,dH[i,:,:]))
+
     return(delta)
 
 
@@ -58,8 +70,10 @@ input = torch.mm(input,torch.t(input))
 out = eigen(input)
 lam = out[0]
 Q = out[1]
+
 #print(input)
 #print(torch.mm(Q,torch.mm(torch.diag(lam),torch.t(Q))))
+
 # generate_momentum need ot be tested for correctness
 def generate_momentum(alpha,lam,Q):
     # generate by multiplying st normal by QV^(0.5) where Sig = QVQ^T
@@ -96,7 +110,7 @@ def getdH(q,V):
     for i in range(dim):
         for j in range(dim):
             #print(i,j)
-            dH[i, j, :] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
+            dH[:, i, j] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
             #print(count)
             #count = count + 1
             #try:
@@ -108,7 +122,7 @@ def getdH(q,V):
 
 def V(q):
     # returns variable if q is variable , returns float if q tensor (shouldn't need it tho)
-    return(0.5 * torch.dot(q,q*q))
+    return(0.5 * torch.dot(q*q,q*q))
 
 def T(q,p,alpha):
     H = getH(q,V)
@@ -118,7 +132,8 @@ def T(q,p,alpha):
     temp = softabs_map(lam,alpha)
     inv_exp_H = torch.mm(torch.mm(Q,torch.diag(temp)),torch.t(Q))
     o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
-    return(o)
+    temp2 = 0.5 * torch.log(torch.abs(lam)).sum()
+    return(o + temp2)
 
 def H(q,p,alpha):
     return(V(q).data[0] + T(q,p,alpha))
@@ -128,7 +143,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     lam,Q = eigen(getH(q,V).data)
     dH = getdH(q,V)
     dV = getdV(q,V)
-    print(dphidq(lam,alpha,dH,Q,dV.data))
+    #print(dphidq(lam,alpha,dH,Q,dV.data))
     #print(dH,dV)
     #print(q,p)
     #p = generate_momentum(alpha,lam,Q)
@@ -136,24 +151,31 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     #print("should be {},get {}".format(q.data,tempout))
     p.data = p.data - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV.data)
     #p.data = p.data - epsilon * 0.5 * tempout
-    print(q,p)
+    #print(q,p)
     rho = p.data.clone()
     pprime = p.data.clone()
     deltap = delta + 0.5
     #print(q,p)
-    while deltap > delta:
+    #print(dH)
+    count = 0
+    while (deltap > delta) and count < 5:
         pprime = rho - epsilon * 0.5 * dtaudq(p.data,dH,Q,lam,alpha)
+        #print(dtaudq(p.data,dH,Q,lam,alpha))
         #tempout =  dtaudq(p.data,dH.data,Q,lam,alpha)
         #print("should be {},get {}".format(q.data,tempout))
         deltap = torch.max(torch.abs(p.data-pprime))
         #print(deltap)
         p.data = pprime.clone()
+        count = count + 1
+        #print(p)
     #print(q,p)
+
     sigma = Variable(q.data.clone(),requires_grad=True)
     qprime = q.data.clone()
     deltaq = delta + 0.5
     olam,oQ = eigen(getH(sigma,V).data)
-    while deltaq > delta:
+    conut = 0
+    while deltaq > delta and count < 5:
         lam,Q = eigen(getH(q,V).data)
         qprime = sigma.data + 0.5 * epsilon * dtaudp(p.data,alpha,olam,oQ) + 0.5 * epsilon* dtaudp(p.data,alpha,lam,Q)
         deltaq = torch.max(torch.abs(q.data-qprime))
@@ -163,12 +185,12 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     dH = getdH(q,V)
     dV = getdV(q,V)
 
-    print("got here")
-
+    #print("got here")
+    #exit()
     lam,Q = eigen(getH(q,V).data)
 
-    p.data = p.data - 0.5 * dtaudq(p.data,dH.data,Q,lam,alpha) * epsilon
-    p.data = p.data - 0.5 * dphidq(lam,alpha,dH.data,Q,dV.data) * epsilon
+    p.data = p.data - 0.5 * dtaudq(p.data,dH,Q,lam,alpha) * epsilon
+    p.data = p.data - 0.5 * dphidq(lam,alpha,dH,Q,dV.data) * epsilon
     #print(q,p)
     return(q,p,H(q,p,alpha))
 
@@ -207,7 +229,7 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     else:
         return(q)
 
-q = Variable(torch.randn(5),requires_grad=True)
+q = Variable(torch.randn(10),requires_grad=True)
 #q = q.cuda()
 #print(q.data.type())
 #exit()
@@ -216,8 +238,11 @@ q = Variable(torch.randn(5),requires_grad=True)
 #o = getdH(q,V)
 #print(o)
 #exit()
-p =Variable(torch.randn(5),requires_grad=True)
-generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)
+p =Variable(torch.randn(10),requires_grad=True)
+print("leapfrog{}".format(leapfrog(q,p,0.01,pi)))
+print("gleapfrog{}".format(generalized_leapfrog(q, p, 0.02, 15, 0.1, V)))
+#print(q,p)
+exit()
 #getdH(q,V)
 #lam, Q = eigen(getH(q, V).data)
 #inv_exp_H = T(p,q,50)
@@ -234,7 +259,7 @@ for _ in range(rep):
     #lam, Q = eigen(getH(q, V).data)
     #o = getdH(q,V)
     #o = leapfrog(q,p,0.1,pi)
-    ou = generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)
+    ou = generalized_leapfrog(q, p, 0.1, 100000, 0.1, V)
 total = time.process_time() - start
 print(total/rep)
 exit()
