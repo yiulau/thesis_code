@@ -95,7 +95,6 @@ def getH(q,V):
         H = Variable(torch.zeros(dim, dim))
     for i in range(dim):
         H[i, :] = grad(g[i], q, create_graph=True)[0]
-
     return(H)
 
 def getdH(q,V):
@@ -114,16 +113,22 @@ def getdH(q,V):
             #print(count)
             #count = count + 1
             #try:
-            #    dH[i, j, :] = grad(H[i, j], q, create_graph=True)[0]
+            #    dH[:,i, j] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
             #except RuntimeError:
-            #    dH[i, j, :] = Variable(torch.zeros(len(q)))
+            #    dH[:,i, j] = torch.zeros(len(q))
 
     return(dH)
+
 
 def V(q):
     # returns variable if q is variable , returns float if q tensor (shouldn't need it tho)
     return(0.5 * torch.dot(q*q,q*q))
-
+'''
+def V(q):
+    l = len(q)
+    o = 0.5 * torch.dot(q[0:(l-1)],q[0:(l-1)])/torch.exp(-q[l-1]) + 0.5 * q[l-1]*q[l-1]/9
+    return(o)
+'''
 def T(q,p,alpha):
     H = getH(q,V)
     out = eigen(H.data)
@@ -132,7 +137,7 @@ def T(q,p,alpha):
     temp = softabs_map(lam,alpha)
     inv_exp_H = torch.mm(torch.mm(Q,torch.diag(temp)),torch.t(Q))
     o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
-    temp2 = 0.5 * torch.log(torch.abs(lam)).sum()
+    temp2 = 0.5 * torch.log(torch.abs(temp)).sum()
     return(o + temp2)
 
 def H(q,p,alpha):
@@ -229,7 +234,9 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     else:
         return(q)
 
-q = Variable(torch.randn(10),requires_grad=True)
+q = Variable(torch.randn(50),requires_grad=True)
+
+
 #q = q.cuda()
 #print(q.data.type())
 #exit()
@@ -238,18 +245,18 @@ q = Variable(torch.randn(10),requires_grad=True)
 #o = getdH(q,V)
 #print(o)
 #exit()
-p =Variable(torch.randn(10),requires_grad=True)
-print("leapfrog{}".format(leapfrog(q,p,0.01,pi)))
-print("gleapfrog{}".format(generalized_leapfrog(q, p, 0.02, 15, 0.1, V)))
+p =Variable(torch.randn(50),requires_grad=True)
+#print("leapfrog{}".format(leapfrog(q,p,0.01,pi)))
+#print("gleapfrog{}".format(generalized_leapfrog(q, p, 0.1, 15, 0.1, V)))
 #print(q,p)
-exit()
+#exit()
 #getdH(q,V)
 #lam, Q = eigen(getH(q, V).data)
 #inv_exp_H = T(p,q,50)
 #print("leapfrog")
 import time,cProfile
-#cProfile.run('leapfrog(q,p,0.1,pi)')
-cProfile.run("generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)")
+cProfile.run('leapfrog(q,p,0.1,pi)')
+#cProfile.run("generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)")
 #cProfile.run("J(lam,50000,200)")
 #cProfile.run("getdH(q,V)")
 exit()
