@@ -123,12 +123,17 @@ def getdH(q,V):
 def V(q):
     # returns variable if q is variable , returns float if q tensor (shouldn't need it tho)
     return(0.5 * torch.dot(q*q,q*q))
-'''
+
 def V(q):
     l = len(q)
     o = 0.5 * torch.dot(q[0:(l-1)],q[0:(l-1)])/torch.exp(-q[l-1]) + 0.5 * q[l-1]*q[l-1]/9
     return(o)
-'''
+def V(q):
+    data = Variable(torch.randn(10000, len(q)))
+    out = torch.sigmoid(torch.mv(data, q))
+    target = Variable(torch.randn(10000))
+    loss = (target * torch.log(out) + (1 - target) * torch.log(1 - out)).sum()
+    return(loss)
 def T(q,p,alpha):
     H = getH(q,V)
     out = eigen(H.data)
@@ -234,7 +239,7 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     else:
         return(q)
 
-q = Variable(torch.randn(50),requires_grad=True)
+q = Variable(torch.randn(15),requires_grad=True)
 
 
 #q = q.cuda()
@@ -245,7 +250,8 @@ q = Variable(torch.randn(50),requires_grad=True)
 #o = getdH(q,V)
 #print(o)
 #exit()
-p =Variable(torch.randn(50),requires_grad=True)
+p =Variable(torch.randn(15),requires_grad=True)
+#p.cuda()
 #print("leapfrog{}".format(leapfrog(q,p,0.01,pi)))
 #print("gleapfrog{}".format(generalized_leapfrog(q, p, 0.1, 15, 0.1, V)))
 #print(q,p)
@@ -255,10 +261,11 @@ p =Variable(torch.randn(50),requires_grad=True)
 #inv_exp_H = T(p,q,50)
 #print("leapfrog")
 import time,cProfile
-cProfile.run('leapfrog(q,p,0.1,pi)')
+#cProfile.run("eigen(getH(q,V).data)")
+#cProfile.run('leapfrog(q,p,0.1,pi)')
 #cProfile.run("generalized_leapfrog(q, p, 0.1, 50000, 0.1, V)")
 #cProfile.run("J(lam,50000,200)")
-#cProfile.run("getdH(q,V)")
+cProfile.run("getdH(q,V)")
 exit()
 rep = 10
 start = time.process_time()
