@@ -20,6 +20,7 @@ def leapfrog(q,p,epsilon,pi):
     p_prime.data -= q_prime.grad.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
+
     return(q_prime,p_prime)
 
 def HMC_alt(epsilon, L, current_q, leapfrog, pi):
@@ -31,6 +32,7 @@ def HMC_alt(epsilon, L, current_q, leapfrog, pi):
         temp_q, temp_p = leapfrog(q, p, epsilon, pi)
         q.data, p.data = temp_q.data.clone(), temp_p.data.clone()
 
+    p.data = -p.data
     #print("propsed q, p are {},{}".format(q,p))
     proposed_H = pi(q, p)
     temp = torch.exp(current_H - proposed_H)
@@ -55,7 +57,7 @@ q = Variable(torch.randn(dim),requires_grad=True)
 #print(numpy.dot(p.data.numpy(),p.data.numpy()))
 #print("H is {}".format(pi(q,p).data.numpy()))
 #exit()
-chain_l = 2000
+chain_l = 5000
 burn_in = 1000
 store = torch.zeros((chain_l,dim))
 for i in range(chain_l):
