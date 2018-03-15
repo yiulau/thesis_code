@@ -44,7 +44,7 @@ def HMC_alt(epsilon, L, current_q, leapfrog, pi):
         return (current_q)
 
 
-dim = 3
+dim = 2
 q = Variable(torch.randn(dim),requires_grad=True)
 #p = Variable(torch.randn(dim),requires_grad=True)
 #print("q is {}".format(q.data))
@@ -55,11 +55,11 @@ q = Variable(torch.randn(dim),requires_grad=True)
 #print(numpy.dot(p.data.numpy(),p.data.numpy()))
 #print("H is {}".format(pi(q,p).data.numpy()))
 #exit()
-chain_l = 100000
-burn_in = 5000
+chain_l = 2000
+burn_in = 1000
 store = torch.zeros((chain_l,dim))
 for i in range(chain_l):
-    print("round {}".format(i))
+    #print("round {}".format(i))
     #out = HMC(0.1,10,q)
     out = HMC_alt(0.1,10,q,leapfrog,pi)
     #out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
@@ -68,13 +68,14 @@ for i in range(chain_l):
     store[i,]=out.data
     q.data = out.data
     #q.data = out[0].data
-    print("q is {}".format(q.data))
+    #print("q is {}".format(q.data))
 
 store = store[burn_in:,]
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
 emmean = numpy.mean(store,axis=0)
-
+print("length of chain is {}".format(chain_l))
+print("burn in is {}".format(burn_in))
 print(empCov)
 print(emmean)
 
