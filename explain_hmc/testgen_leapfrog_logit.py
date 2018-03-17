@@ -5,8 +5,12 @@ import pystan
 import pickle
 import time,cProfile
 
-dim = 5
-num_ob = 100
+
+chain_l = 1000
+burn_in = 100
+alp =1e6
+dim = 3
+num_ob = 15
 recompile = False
 if recompile:
     mod = pystan.StanModel(file="./alt_log_reg.stan")
@@ -20,7 +24,7 @@ y_np= np.random.binomial(n=1,p=0.5,size=num_ob)
 X_np = np.random.randn(num_ob,dim)
 
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data)
+fit = mod.sampling(data=data,refresh=0)
 print(fit)
 
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
@@ -227,17 +231,16 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     else:
         return(q)
 
-chain_l = 10
-burn_in = 5
 store = torch.zeros((chain_l,dim))
-#cProfile.run("rmhmc_step(q,H,0.1,10,1000,0.1,V)")
+#cProfile.run("rmhmc_step(q,H,0.1,10,alp,0.1,V)")
+#exit()
 begin = time.time()
 for i in range(chain_l):
-    #print("round {}".format(i))
+    print("round {}".format(i))
     #out = HMC(0.1,10,q)
     #out = HMC_alt(0.1,10,q,leapfrog,pi)
     #out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
-    out = rmhmc_step(q,H,0.1,10,1000,0.1,V)
+    out = rmhmc_step(q,H,0.1,10,alp,0.1,V)
     #print("tree depth is {}".format(out[1]))
     #store[i,] = out[0].data
     store[i,]=out.data
@@ -253,5 +256,7 @@ emmean = np.mean(store,axis=0)
 print("length of chain is {}".format(chain_l))
 print("burn in is {}".format(burn_in))
 print("total time is {}".format(totalt))
+print("alpha is {}".format(alp))
 #print(empCov)
+print("sd is {}".format(np.sqrt(np.diagonal(empCov))))
 print("mean is {}".format(emmean))
