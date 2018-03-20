@@ -6,10 +6,10 @@ import pickle
 import time,cProfile
 
 
-chain_l = 1000
+chain_l = 200
 burn_in = 100
 alp =1e6
-dim = 3
+dim = 4
 num_ob = 25
 recompile = False
 if recompile:
@@ -50,7 +50,8 @@ def coth_torch(x):
 
 def eigen(H):
     # input must be of type tensor ** not variable
-    out = torch.eig(H,True)
+    #out = torch.eig(H,True)
+    out = torch.symeig(H,True)
     return(out[0][:,0],out[1])
 
 def getdV(q,V):
@@ -201,37 +202,41 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
         count = count + 1
         #print(p)
     #print(q,p)
-    #print("break6")
+    print("break6")
     sigma = Variable(q.data.clone(),requires_grad=True)
     qprime = q.data.clone()
     deltaq = delta + 0.5
     olam,oQ = eigen(getH(sigma,V).data)
     count = 0
     while (deltaq > delta) and (count < 5):
+
         lam,Q = eigen(getH(q,V).data)
-        #print("break6b")
+        print("break6b")
         qprime = sigma.data + 0.5 * epsilon * dtaudp(p.data,alpha,olam,oQ) + 0.5 * epsilon* dtaudp(p.data,alpha,lam,Q)
-        #print("break6c")
+        print("break6c")
         deltaq = torch.max(torch.abs(q.data-qprime))
-        #print("break6d")
-        #print("deltaq is {}".format(deltaq))
-        #print("deltaq > delta is {}".format(deltaq > delta))
+        print("break6d")
+        print("deltaq is {}".format(deltaq))
+        print("deltaq > delta is {}".format(deltaq > delta))
         q.data = qprime.clone()
         count = count + 1
-        #print("count is {} ".format(count))
+        print("count is {} ".format(count))
     #print(q,p)
-    #print("break7")
+    print("break7")
     dH = getdH(q,V)
+    print("break8")
     dV = getdV(q,V)
-
+    print("break9")
     #print("got here")
     #exit()
     lam,Q = eigen(getH(q,V).data)
-
+    print("break10")
     p.data = p.data - 0.5 * dtaudq(p.data,dH,Q,lam,alpha) * epsilon
+    print("break11")
     p.data = p.data - 0.5 * dphidq(lam,alpha,dH,Q,dV.data) * epsilon
+    print("break12")
     #print(q,p)
-    return(q,p,H(q,p,alpha))
+    return(q,p)
 
 def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     #p = Variable(torch.randn(len(initq)),requires_grad=True)
@@ -258,8 +263,14 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
         return(q)
 
 store = torch.zeros((chain_l,dim))
+a = getH(q,V).data.numpy()
+print(a)
+print(np.allclose(a, a.T, atol=1e-8))
+print(torch.eig(getH(q,V).data),True)
+print(torch.symeig(getH(q,V).data),True)
+print(np.linalg.eig(getH(q,V).data))
 #cProfile.run("rmhmc_step(q,H,0.1,10,alp,0.1,V)")
-#exit()
+exit()
 begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
@@ -286,3 +297,5 @@ print("alpha is {}".format(alp))
 #print(empCov)
 print("sd is {}".format(np.sqrt(np.diagonal(empCov))))
 print("mean is {}".format(emmean))
+
+print(fit)
