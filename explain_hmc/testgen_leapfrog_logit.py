@@ -6,11 +6,11 @@ import pickle
 import time,cProfile
 
 
-chain_l = 200
+chain_l = 1000
 burn_in = 100
-alp =1e6
-dim = 4
-num_ob = 25
+alp =110000
+dim = 5
+num_ob = 100
 recompile = False
 if recompile:
     mod = pystan.StanModel(file="./alt_log_reg.stan")
@@ -51,8 +51,18 @@ def coth_torch(x):
 def eigen(H):
     # input must be of type tensor ** not variable
     #out = torch.eig(H,True)
-    out = torch.symeig(H,True)
-    return(out[0][:,0],out[1])
+    try:
+        out = torch.symeig(H,True)
+    except RuntimeError:
+        print(fit)
+        print(H)
+        print(np.linalg.eig(H.numpy()))
+
+    #print("lam is {}".format(out[0]))
+    #print("Q is {}".format(out[1]))
+    #print("regularized lam is {}".format(softabs_map(out[0],alp)))
+    #return(out[0][:,0],out[1]) #for eig only
+    return(out[0],out[1])
 
 def getdV(q,V):
     potentialE = V(q)
@@ -68,6 +78,8 @@ def getH(q,V):
         H = Variable(torch.zeros(dim, dim))
     for i in range(dim):
         H[i, :] = grad(g[i], q, create_graph=True)[0]
+    print("g is {}".format(g.data))
+    print("H is {}".format(H.data))
     return(H)
 
 def getdH(q,V):
@@ -136,18 +148,35 @@ def dtaudq(p,dH,Q,lam,alpha):
 def dtaudp(p,alpha,lam,Q):
     return(torch.mv(Q,(softabs_map(lam,alpha)*torch.mv(torch.t(Q),p))))
 
-def V(q):
+def V1(q):
     beta = q
-
+    print("Xbeta is {}".format(torch.mv(X,beta)))
     pihat = torch.sigmoid(torch.mv(X,beta))
-
+    print("pihat is {}".format(pihat))
+    print("log(pihat) is {}".format(torch.log(pihat)))
+    print("log(pihat)*y is {}".format(torch.log(pihat)*y))
+    print("dot(log(pihat),y) is {}".format(torch.dot(torch.log(pihat),y) ))
+    print("log(1-pihat) is {}".format(torch.log(1-pihat)))
+    print("dot(log(1-pihat),(1-y)) is {}".format(torch.dot((1-y),torch.log(1-pihat))))
     likelihood = torch.dot(torch.log(pihat),y) + torch.dot((1-y),torch.log(1-pihat))
-
+    print("likelihood is {}".format(likelihood))
     prior = - torch.dot(beta,beta) * 0.5
 
     posterior = prior + likelihood
 
     return(-posterior)
+def V(q):
+    beta = q
+    print("Xbeta is {}".format(torch.mv(X, beta)))
+    print("exp(X,beta) is {}".format(torch.exp(torch.mv(X,beta))))
+    print("log(pihat) is {}".format(torch.log(1+torch.exp(torch.mv(X,beta)))))
+    likelihood = torch.dot(beta,torch.mv(torch.t(X),y)) - \
+    torch.sum(torch.log(1+torch.exp(torch.mv(X,beta))))
+    print("likelihood is {}".format(likelihood))
+    prior = -torch.dot(beta,beta) * 0.5
+    posterior = prior + likelihood
+    return(-posterior)
+
 
 def T(q,alpha):
     def T_givenq(p):
@@ -202,7 +231,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
         count = count + 1
         #print(p)
     #print(q,p)
-    print("break6")
+    #print("break6")
     sigma = Variable(q.data.clone(),requires_grad=True)
     qprime = q.data.clone()
     deltaq = delta + 0.5
@@ -211,30 +240,30 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     while (deltaq > delta) and (count < 5):
 
         lam,Q = eigen(getH(q,V).data)
-        print("break6b")
+        #print("break6b")
         qprime = sigma.data + 0.5 * epsilon * dtaudp(p.data,alpha,olam,oQ) + 0.5 * epsilon* dtaudp(p.data,alpha,lam,Q)
-        print("break6c")
+        #print("break6c")
         deltaq = torch.max(torch.abs(q.data-qprime))
-        print("break6d")
-        print("deltaq is {}".format(deltaq))
-        print("deltaq > delta is {}".format(deltaq > delta))
+        #print("break6d")
+        #print("deltaq is {}".format(deltaq))
+        #print("deltaq > delta is {}".format(deltaq > delta))
         q.data = qprime.clone()
         count = count + 1
-        print("count is {} ".format(count))
+        #print("count is {} ".format(count))
     #print(q,p)
-    print("break7")
+    #print("break7")
     dH = getdH(q,V)
-    print("break8")
+    #print("break8")
     dV = getdV(q,V)
-    print("break9")
+    #print("break9")
     #print("got here")
     #exit()
     lam,Q = eigen(getH(q,V).data)
-    print("break10")
+    #print("break10")
     p.data = p.data - 0.5 * dtaudq(p.data,dH,Q,lam,alpha) * epsilon
-    print("break11")
+    #print("break11")
     p.data = p.data - 0.5 * dphidq(lam,alpha,dH,Q,dV.data) * epsilon
-    print("break12")
+    #print("break12")
     #print(q,p)
     return(q,p)
 
@@ -263,14 +292,24 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
         return(q)
 
 store = torch.zeros((chain_l,dim))
-a = getH(q,V).data.numpy()
-print(a)
-print(np.allclose(a, a.T, atol=1e-8))
-print(torch.eig(getH(q,V).data),True)
-print(torch.symeig(getH(q,V).data),True)
-print(np.linalg.eig(getH(q,V).data))
+a = getH(q,V).data
+lam,Q = eigen(a)
+#print(lam,Q)
+
+#print(a)
+
+#print(torch.mm(Q,torch.diag(lam)).mm(torch.t(Q)))
+#exit()
+#print(np.allclose(a, a.T, atol=1e-8))
+#out1 = torch.eig(getH(q,V).data,True)
+#print(out1)
+#exit()
+#out2 = torch.symeig(getH(q,V).data,True)
+#print(out2)
+#exit()
+#print(np.linalg.eig(getH(q,V).data))
 #cProfile.run("rmhmc_step(q,H,0.1,10,alp,0.1,V)")
-exit()
+#exit()
 begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
