@@ -237,12 +237,17 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     #p = Variable(torch.randn(len(initq)),requires_grad=True)
     q = Variable(initq.data.clone(), requires_grad=True)
     lam,Q = eigen(getH(q,V).data)
-    p = generate_momentum(alpha,lam,Q)
-    current_H = V(q,p,alpha).data + T(q,alpha)(p)
+    p = Variable(generate_momentum(alpha,lam,Q))
+    current_H = (V(q).data + T(q,alpha)(p)).numpy()[0]
+    #print("current H {}".format(current_H))
+
     for _ in range(L):
         out = generalized_leapfrog(q,p,epsilon,alpha,delta,V)
         q.data = out[0].data
-    proposed_H = out[2]
+    #proposed_H = out[2]
+    proposed_H = (V(q).data + T(initq,alpha)(out[1])).numpy()[0]
+    #print("proposed H {}".format(proposed_H))
+    #exit()
     u = np.random.rand(1)
     print("current H {}".format(current_H))
     print("propsed H {}".format(proposed_H))
