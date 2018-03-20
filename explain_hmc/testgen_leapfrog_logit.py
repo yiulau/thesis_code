@@ -10,7 +10,7 @@ chain_l = 1000
 burn_in = 100
 alp =1e6
 dim = 3
-num_ob = 15
+num_ob = 25
 recompile = False
 if recompile:
     mod = pystan.StanModel(file="./alt_log_reg.stan")
@@ -33,7 +33,11 @@ X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)
 
 q = Variable(torch.randn(dim),requires_grad=True)
 p = Variable(torch.randn(dim))
-
+def generate_momentum(alpha,lam,Q):
+    # generate by multiplying st normal by QV^(0.5) where Sig = QVQ^T
+    temp = torch.mm(Q,torch.diag(1./torch.sqrt(softabs_map(lam,alpha))))
+    out = torch.mv(temp,torch.randn(len(lam)))
+    return(out)
 def softabs_map(lam,alpha):
     # takes vector as input
     # returns a vector
@@ -78,8 +82,6 @@ def getdH(q,V):
         for j in range(dim):
             #print(i,j)
             dH[:, i, j] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
-            #print(count)
-            #count = count + 1
             #try:
             #    dH[:,i, j] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
             #except RuntimeError:
@@ -146,33 +148,39 @@ def V(q):
 
     return(-posterior)
 
-def T(q,p,alpha):
-    H = getH(q,V)
-    out = eigen(H.data)
-    lam = out[0]
-    Q = out[1]
-    temp = softabs_map(lam,alpha)
-    inv_exp_H = torch.mm(torch.mm(Q,torch.diag(temp)),torch.t(Q))
-    o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
-    temp2 = 0.5 * torch.log(torch.abs(temp)).sum()
-    return(o + temp2)
+def T(q,alpha):
+    def T_givenq(p):
+        H = getH(q,V)
+        out = eigen(H.data)
+        lam = out[0]
+        Q = out[1]
+        temp = softabs_map(lam,alpha)
+        inv_exp_H = torch.mm(torch.mm(Q,torch.diag(temp)),torch.t(Q))
+        o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
+        temp2 = 0.5 * torch.log(torch.abs(temp)).sum()
+        return(o + temp2)
+    return(T_givenq)
 
 def H(q,p,alpha):
-    return(V(q).data[0] + T(q,p,alpha))
+    return(V(q).data[0] + T(q,alpha)(p))
 
 def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     q = q.clone()
     p = p.clone()
+    #print("break1")
     lam,Q = eigen(getH(q,V).data)
+    #print("break2")
     dH = getdH(q,V)
+    #print("break3")
     dV = getdV(q,V)
+    #print("break4")
     #print(dphidq(lam,alpha,dH,Q,dV.data))
     #print(dH,dV)
     #print(q,p)
-    #p = generate_momentum(alpha,lam,Q)
     #tempout = dphidq(lam,alpha,dH.data,Q,dV.data)
     #print("should be {},get {}".format(q.data,tempout))
     p.data = p.data - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV.data)
+    #print("break5")
     #p.data = p.data - epsilon * 0.5 * tempout
     #print(q,p)
     rho = p.data.clone()
@@ -181,7 +189,8 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     #print(q,p)
     #print(dH)
     count = 0
-    while (deltap > delta) and count < 5:
+
+    while (deltap > delta) and (count < 5):
         pprime = rho - epsilon * 0.5 * dtaudq(p.data,dH,Q,lam,alpha)
         #print(dtaudq(p.data,dH,Q,lam,alpha))
         #tempout =  dtaudq(p.data,dH.data,Q,lam,alpha)
@@ -192,19 +201,26 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
         count = count + 1
         #print(p)
     #print(q,p)
-
+    #print("break6")
     sigma = Variable(q.data.clone(),requires_grad=True)
     qprime = q.data.clone()
     deltaq = delta + 0.5
     olam,oQ = eigen(getH(sigma,V).data)
-    conut = 0
-    while deltaq > delta and count < 5:
+    count = 0
+    while (deltaq > delta) and (count < 5):
         lam,Q = eigen(getH(q,V).data)
+        #print("break6b")
         qprime = sigma.data + 0.5 * epsilon * dtaudp(p.data,alpha,olam,oQ) + 0.5 * epsilon* dtaudp(p.data,alpha,lam,Q)
+        #print("break6c")
         deltaq = torch.max(torch.abs(q.data-qprime))
+        #print("break6d")
+        #print("deltaq is {}".format(deltaq))
+        #print("deltaq > delta is {}".format(deltaq > delta))
         q.data = qprime.clone()
+        count = count + 1
+        #print("count is {} ".format(count))
     #print(q,p)
-
+    #print("break7")
     dH = getdH(q,V)
     dV = getdV(q,V)
 
@@ -218,14 +234,19 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     return(q,p,H(q,p,alpha))
 
 def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
-    p = Variable(torch.randn(len(initq)),requires_grad=True)
-    q = Variable(initq.data.clone(),requires_grad=True)
-    current_H = H(q,p,alpha)
+    #p = Variable(torch.randn(len(initq)),requires_grad=True)
+    q = Variable(initq.data.clone(), requires_grad=True)
+    lam,Q = eigen(getH(q,V).data)
+    p = generate_momentum(alpha,lam,Q)
+    current_H = V(q,p,alpha).data + T(q,alpha)(p)
     for _ in range(L):
         out = generalized_leapfrog(q,p,epsilon,alpha,delta,V)
         q.data = out[0].data
     proposed_H = out[2]
     u = np.random.rand(1)
+    print("current H {}".format(current_H))
+    print("propsed H {}".format(proposed_H))
+    print("accep rate {}".format(np.exp(current_H-proposed_H)))
     if u < np.exp(current_H - proposed_H):
         return(out[0])
     else:
