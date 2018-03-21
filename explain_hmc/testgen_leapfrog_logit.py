@@ -6,7 +6,7 @@ import pickle
 import time,cProfile
 import pandas as pd
 
-chain_l = 300
+chain_l = 500
 burn_in = 100
 alp =1e6
 dim = 8
@@ -19,23 +19,23 @@ if recompile:
 
 mod = pickle.load(open('model.pkl', 'rb'))
 
-#df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
+df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
 #print(df)
-#dfm = df.as_matrix()
+dfm = df.as_matrix()
 #print(dfm)
 #print(dfm.shape)
-#y_np = dfm[:,8]
-#y_np = y_np.astype(np.int64)
-#X_np = dfm[:,1:8]
-#dim = X_np.shape[1]
-#num_ob = X_np.shape[0]
+y_np = dfm[:,8]
+y_np = y_np.astype(np.int64)
+X_np = dfm[:,1:8]
+dim = X_np.shape[1]
+num_ob = X_np.shape[0]
 #print(y_np)
 #print(X_np.shape)
 #exit()
-dim =3
-num_ob = 10
-y_np= np.random.binomial(n=1,p=0.5,size=num_ob)
-X_np = np.random.randn(num_ob,dim)
+#dim =3
+#num_ob = 10
+#y_np= np.random.binomial(n=1,p=0.5,size=num_ob)
+#X_np = np.random.randn(num_ob,dim)
 #dim = X_np.shape[1]
 #num_ob = X_np.shape[0]
 #print(y_np.dtype)
@@ -43,7 +43,7 @@ X_np = np.random.randn(num_ob,dim)
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 #print(data)
 
-#fit = mod.sampling(data=data,refresh=0)
+fit = mod.sampling(data=data,refresh=0)
 #print(fit)
 #exit()
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
@@ -55,7 +55,7 @@ p = Variable(torch.randn(dim))
 def generate_momentum(alpha,lam,Q):
     # generate by multiplying st normal by QV^(0.5) where Sig = QVQ^T
     #print(lam,Q)
-    temp = torch.mm(Q,torch.diag(1./torch.sqrt(softabs_map(lam,alpha))))
+    temp = torch.mm(Q,torch.diag(torch.sqrt(softabs_map(lam,alpha))))
     #print(temp)
     out = torch.mv(temp,torch.randn(len(lam)))
     return(out)
@@ -177,10 +177,10 @@ def T(q,alpha):
         lam = out[0]
         Q = out[1]
         temp = softabs_map(lam,alpha)
-        inv_exp_H = torch.mm(torch.mm(Q,torch.diag(temp)),torch.t(Q))
+        inv_exp_H = torch.mm(torch.mm(Q,torch.diag(1/temp)),torch.t(Q))
         o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
-        temp2 = 0.5 * torch.log((1/temp)).sum()
-        print("o is {}".format(o))
+        temp2 = 0.5 * torch.log((temp)).sum()
+        #print("o is {}".format(o))
 
         return(o + temp2)
     return(T_givenq)
@@ -196,7 +196,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
 
     p.data = p.data - epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV.data)
     #print("dphidq is {}".format( dphidq(lam,alpha,dH,Q,dV.data)))
-    return (q, p)
+    #return (q, p)
     rho = p.data.clone()
     pprime = p.data.clone()
     deltap = delta + 0.5
@@ -237,7 +237,7 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     lam,Q = eigen(getH(q,V).data)
     p = Variable(generate_momentum(alpha,lam,Q))
     #print(p)
-    current_H = (V(q).data + T(initq,alpha)(p)).numpy()[0]
+    current_H = (V(q).data + T(q,alpha)(p)).numpy()[0]
     #print("p is {}".format(p.data))
     #print("q is {}".format(q.data))
     #print(q,p)
@@ -258,7 +258,7 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
     print("propsed H {}".format(proposed_H))
     print("accep rate {}".format(np.exp(min(0,(current_H-proposed_H)))))
     if np.log(u) < min(0,(current_H - proposed_H)):
-        return(q,p)
+        return(q)
     else:
         return(initq)
 #out = rmhmc_step(q,H,0.1,10,alp,0.1,V)
@@ -300,4 +300,4 @@ print("alpha is {}".format(alp))
 print("sd is {}".format(np.sqrt(np.diagonal(empCov))))
 print("mean is {}".format(emmean))
 
-#print(fit)
+print(fit)
