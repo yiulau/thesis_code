@@ -6,8 +6,8 @@ import pickle
 import time,cProfile
 import pandas as pd
 
-chain_l = 500
-burn_in = 100
+chain_l = 50
+burn_in = 10
 alp =1e6
 dim = 8
 num_ob = 532
@@ -43,7 +43,7 @@ num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 #print(data)
 
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 #print(fit)
 #exit()
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
@@ -297,7 +297,8 @@ print("burn in is {}".format(burn_in))
 print("total time is {}".format(totalt))
 print("alpha is {}".format(alp))
 #print(empCov)
+print("store is {}".format(store))
 print("sd is {}".format(np.sqrt(np.diagonal(empCov))))
 print("mean is {}".format(emmean))
 
-print(fit)
+#print(fit)
