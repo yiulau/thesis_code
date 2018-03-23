@@ -7,8 +7,8 @@ import pickle
 import time, cProfile, math
 dim = 5
 num_ob = 100
-chain_l = 2000
-burn_in = 1000
+chain_l = 20
+burn_in = 10
 max_tdepth = 10
 
 recompile = False
@@ -33,7 +33,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 
 #print(fit)
 
@@ -134,8 +134,8 @@ def leapfrog(q,p,epsilon,pi):
     return(q_prime, p_prime)
 
 def gen_NUTS_criterion(p_left,p_right,p_sum):
-    o = (torch.dot(p_left.data,p_sum.data) > 0) and \
-        (torch.dot(p_right.data,p_sum.data))
+    o = (torch.dot(p_left.data,p_sum.data) >= 0) or \
+        (torch.dot(p_right.data,p_sum.data) >= 0)
     return(o)
 
 def NUTS_criterion(q_left,q_right,p_left,p_right):
@@ -148,17 +148,20 @@ def NUTS_criterion(q_left,q_right,p_left,p_right):
 #q = Variable(torch.randn(dim),requires_grad=True)
 
 v = -1
-
+print(q)
+out = NUTS(q,0.12,pi,leapfrog,NUTS_criterion)
+print(out)
+exit()
 epsilon = 0.11
 
 store = torch.zeros((chain_l,dim))
 begin = time.time()
 for i in range(chain_l):
-    #print("round {}".format(i))
+    print("round {}".format(i))
     out = NUTS(q,0.12,pi,leapfrog,NUTS_criterion)
     store[i,] = out[0].data # turn this on when using Nuts
     q.data = out[0].data # turn this on when using nuts
-
+    print("q is {} tree length {}".format(q.data, out[1]))
 total = time.time() - begin
 print("total time is {}".format(total))
 print("length of chain is {}".format(chain_l))
@@ -168,7 +171,8 @@ store = store[burn_in:,]
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
 emmean = numpy.mean(store,axis=0)
+print("store is {}".format(store))
 #print(empCov)
 print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
-print(fit)
+#print(fit)
