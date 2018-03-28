@@ -99,6 +99,7 @@ def leapfrog(q,p,epsilon,pi):
 
     return(q_prime,p_prime)
 
+
 def HMC_alt(epsilon, L, current_q, leapfrog, pi):
     p = Variable(torch.randn(len(current_q)), requires_grad=False)
     q = Variable(current_q.data.clone(), requires_grad=True)
