@@ -32,7 +32,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-#fit = mod.sampling(data=data,refresh=0)
+fit = mod.sampling(data=data,refresh=0)
 #print(fit)
 #exit()
 
@@ -114,9 +114,12 @@ def leapfrog_window(q,p,epsilon,pi,logw_old,qprop_old,pprop_old):
     p_prime.data -= q_prime.grad.data * 0.5 * epsilon
     #print(q_prime.data,p_prime.data)
     q_prime.grad.data.zero_()
-    logw_prop = pi(q_prime,p_prime).data.numpy()
+    logw_prop = -pi(q_prime,p_prime).data.numpy()
+    #print("logw_prop is {}".format(logw_prop))
+    #print("logw_old is {}".format(logw_old))
     accep_rate = math.exp(min(0, (logw_prop - logsumexp(logw_prop, logw_old))))
     u = numpy.random.rand(1)[0]
+    #print(accep_rate)
     if u < accep_rate:
         qprop = q_prime
         pprop = p_prime
@@ -131,7 +134,7 @@ def HMC_alt_windowed(epsilon, L, current_q, leapfrog, pi):
     p = Variable(torch.randn(len(current_q)), requires_grad=False)
     q = Variable(current_q.data.clone(), requires_grad=True)
     #print("original q,p are {},{}".format(q,p))
-    logw_prop = pi(q, p).data.numpy()
+    logw_prop = -pi(q, p).data.numpy()
     q_prop = q.clone()
     p_prop = p.clone()
     for _ in range(L):
@@ -234,4 +237,4 @@ print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
 
 
-#print(fit)
+print(fit)
