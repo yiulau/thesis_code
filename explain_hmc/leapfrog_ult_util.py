@@ -10,6 +10,10 @@ def logsumexp(a,b):
     return(out)
 
 def leapfrog_ult(q,p,epsilon,H_fun):
+    # Input:
+    # q, p pytorch variables
+    # epsilon float
+    # H_fun(q,p) function that maps (q,p) to its energy . Should return a pytorch Variable
     H = H_fun(q,p)
     H.backward()
     p.data -= q.grad.data * 0.5 * epsilon
@@ -22,6 +26,13 @@ def leapfrog_ult(q,p,epsilon,H_fun):
     return(q,p)
 
 def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun):
+    # Input:
+    # current_q Pytorch Variable
+    # H_fun returns Pytorch Variable
+    # Output:
+    # accept_rate: float - probability of acceptance
+    # accepted: Boolean - True if proposal is accepted, False otherwise
+    # divergent: Boolean - True if the end of the trajectory results in a divergent transition
 
     p = Variable(torch.randn(len(current_q)), requires_grad=False)
     q = Variable(current_q.data.clone(),requires_grad=True)
