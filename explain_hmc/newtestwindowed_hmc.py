@@ -1,13 +1,12 @@
 import pandas as pd
-import torch,math
+import torch
 from torch.autograd import Variable,grad
-from leapfrog_ult_util import HMC_alt_ult, leapfrog_ult
-from general_util import logsumexp_torch, logsum_exp
+from leapfrog_ult_util import HMC_alt_windowed, leapfrog_window
+from general_util import logsumexp, logsumexp_torch,
 import pystan
-import numpy
+import numpy, math
 import pickle
 import pandas as pd
-import cProfile
 dim = 4
 num_ob = 25
 chain_l = 2000
@@ -36,14 +35,15 @@ dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 fit = mod.sampling(data=data,refresh=0)
-
+#print(fit)
+#exit()
 
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
 
 X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)
 
 q = Variable(torch.randn(dim),requires_grad=True)
-p = Variable(torch.randn(dim),requires_grad=False)
+p = Variable(torch.randn(dim))
 
 def V(beta):
     likelihood = torch.dot(beta, torch.mv(torch.t(X), y)) - \
@@ -59,12 +59,13 @@ def H(q,p):
     return(V(q)+T(p))
 
 
+
 store = torch.zeros((chain_l,dim))
 for i in range(chain_l):
     print("round {}".format(i))
-    out = HMC_alt_ult(0.1,10,q,leapfrog_ult,H)
-    store[i,]=out[0]
-    q.data = out[0]
+    out = HMC_alt_windowed(0.1,10,q,leapfrog_window,H)[0]
+    store[i,]=out.data
+    q.data = out.data
 
 
 store = store[burn_in:,]

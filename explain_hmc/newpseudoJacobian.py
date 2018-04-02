@@ -18,7 +18,7 @@ def J(lam,alpha,length):
                     #mindif = dif
                 J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))/(lam[i]-lam[j])
             else:
-                J[i,j] = (coth(alpha*lam[i]) + lam[i]*(1-np.square(coth(alpha*lam[i])))*alpha)
+                J[i,j] = (coth(alpha*lam[i]) + lam[i]*(1-(coth(alpha*lam[i]))**2)*alpha)
     #print("mindif is {}".format(mindif))
     return(J)
 
@@ -40,13 +40,14 @@ def J_2(lam,alpha,length):
                     # 1 if lam > 0 , -1 otherwise
                     J[i,j] = 2*float(lam[i]>0)-1
                 else:
-                    J[i, j] = (coth(alpha * lam[i]) + lam[i] * (1 - np.square(coth(alpha * lam[i]))) * alpha)
+                    J[i, j] = (coth(alpha * lam[i]) + lam[i] * (1 - (coth(alpha * lam[i]))**2) * alpha)
             else:
                 J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))/(lam[i]-lam[j])
             j = j + 1
         i = i + 1
     #print("mindif is {}".format(mindif))
     return(J)
+
 
 lam = [1.,2.,3.,4.]
 alpha = 1e6

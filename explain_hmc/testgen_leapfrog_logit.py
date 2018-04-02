@@ -19,25 +19,25 @@ if recompile:
 
 mod = pickle.load(open('model.pkl', 'rb'))
 
-df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
+#df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
 #print(df)
-dfm = df.as_matrix()
+#dfm = df.as_matrix()
 #print(dfm)
 #print(dfm.shape)
-y_np = dfm[:,8]
-y_np = y_np.astype(np.int64)
-X_np = dfm[:,1:8]
-dim = X_np.shape[1]
-num_ob = X_np.shape[0]
+#y_np = dfm[:,8]
+#y_np = y_np.astype(np.int64)
+#X_np = dfm[:,1:8]
+#dim = X_np.shape[1]
+#num_ob = X_np.shape[0]
 #print(y_np)
 #print(X_np.shape)
 #exit()
-#dim =3
-#num_ob = 10
-#y_np= np.random.binomial(n=1,p=0.5,size=num_ob)
-#X_np = np.random.randn(num_ob,dim)
-#dim = X_np.shape[1]
-#num_ob = X_np.shape[0]
+dim =3
+num_ob = 10
+y_np= np.random.binomial(n=1,p=0.5,size=num_ob)
+X_np = np.random.randn(num_ob,dim)
+dim = X_np.shape[1]
+num_ob = X_np.shape[0]
 #print(y_np.dtype)
 
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
@@ -102,6 +102,20 @@ def getH(q,V):
         H[i, :] = grad(g[i], q, create_graph=True)[0]
     return(H)
 
+def getH_explicit(q,V):
+    beta = q
+    pihat = torch.sigmoid(torch.mv(X,beta))
+    out = torch.mm(X.t(),torch.mm(X.t(),torch.diag(pihat * (1.- pihat))).t()).data + torch.diag(torch.ones(len(beta)))
+    return(out)
+
+def getdH_explicit(q,V):
+    beta = q
+    dim = len(q)
+    dH = torch.zeros(dim,dim,dim)
+    pihat = torch.sigmoid(torch.mv(X,beta))
+    for i in range(dim):
+        dH[i,:,:] = (torch.mm(X.t(),torch.diag(pihat * (1.- pihat))).mm(torch.diag(1.-2*pihat)*X[:,i]).mm(X)).data
+    return(dH)
 def getdH(q,V):
     H = getH(q,V)
     dim = len(q)
@@ -264,7 +278,13 @@ def rmhmc_step(initq,H,epsilon,L,alpha,delta,V):
 #out = rmhmc_step(q,H,0.1,10,alp,0.1,V)
 #print("auto is {}".format(getdV(q,V)))
 #print("explicit is {}".format(getdV_explicit(q,V)))
-#exit()
+#print("explicit is {}".format(getH_explicit(q,V)))
+#print("auto is {}".format(getH(q,V)))
+print(torch.abs(getdH_explicit(q,V) - getdH(q,V)).sum())
+exit()
+print("explicit is {}".format(getdH_explicit(q,V)))
+print("auto is {}".format(getdH(q,V)))
+exit()
 #lam,Q = eigen(getH(q,V).data)
 #p = Variable(generate_momentum(alp,lam,Q))
 #print("q is {}".format(q))

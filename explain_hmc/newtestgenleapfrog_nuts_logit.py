@@ -5,6 +5,8 @@ import pystan
 import numpy
 import pickle
 import time, cProfile, math
+from genleapfrog_ult_util import rmhmc_step, getH, eigen, softabs_map
+
 dim = 5
 num_ob = 100
 chain_l = 50
@@ -43,114 +45,11 @@ X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)
 
 q = Variable(torch.randn(dim),requires_grad=True)
 p = Variable(torch.randn(dim))
-def generate_momentum(alpha,lam,Q):
-    # generate by multiplying st normal by QV^(0.5) where Sig = QVQ^T
-    #print(lam,Q)
-    temp = torch.mm(Q,torch.diag(torch.sqrt(softabs_map(lam,alpha))))
-    #print(temp)
-    out = torch.mv(temp,torch.randn(len(lam)))
-    return(out)
-def softabs_map(lam,alpha):
-    # takes vector as input
-    # returns a vector
-    return(lam * coth_torch(lam*alpha))
-
-def coth(x):
-    return(1/numpy.asscalar(numpy.tanh(x)))
-def coth_torch(x):
-    return(1/torch.tanh(x))
-
-def eigen(H):
-    # input must be of type tensor ** not variable
-    try:
-        out = torch.symeig(H,True)
-    except RuntimeError:
-        #print(fit)
-        print(H)
-        print(numpy.linalg.eig(H.numpy()))
-    return(out[0],out[1])
-
-def getdV(q,V):
-    potentialE = V(q)
-    g = grad(potentialE, q, create_graph=True)[0]
-    return(g)
-
-def getdV_explicit(q,V):
-    beta = q
-    pihat = torch.sigmoid(torch.mv(X,beta))
-    out = X.t().mv(y-pihat)
-    return(out)
 
 
-def getH(q,V):
-    g = getdV(q,V)
-    dim = len(q)
-    if q.data.type() == "torch.cuda.FloatTensor":
-        H = Variable(torch.zeros(dim, dim)).cuda()
-    else:
-        H = Variable(torch.zeros(dim, dim))
-    for i in range(dim):
-        H[i, :] = grad(g[i], q, create_graph=True)[0]
-    return(H)
 
-def getdH(q,V):
-    H = getH(q,V)
-    dim = len(q)
-    if q.data.type() == "torch.cuda.FloatTensor":
-        dH = torch.zeros(dim,dim,dim).cuda()
-    else:
-        dH = torch.zeros(dim,dim,dim)
-    for i in range(dim):
-        for j in range(dim):
-            dH[:, i, j] = grad(H[i, j], q, create_graph=False,retain_graph=True)[0].data
 
-    return(dH)
 
-def dphidq(lam,alpha,dH,Q,dV):
-    N = len(lam)
-    #print("lam is {}".format(lam))
-    Jm = J(lam,alpha,len(lam))
-    R = torch.diag(1/(lam*coth_torch(alpha*lam)))
-    M = torch.mm(Q,torch.mm(R*Jm,torch.t(Q)))
-    #print("M is {}".format(M))
-    #print("dH is {}".format(dH[0,:,:]))
-    #print("trace(MdH) is {}".format(torch.trace(torch.mm(M,dH[0,:,:])) ))
-    #print("dV is {}".format(dV))
-    delta = torch.zeros(N)
-    for i in range(N):
-        delta[i] = 0.5 * torch.trace(torch.mm(M,dH[i,:,:])) + dV[i]
-    return(delta)
-
-def J(lam,alpha,length):
-    J = torch.zeros(length,length)
-    #mindif = 1
-    for i in range(length):
-        for j in range(length):
-            if i!=j:
-                #dif = abs(lam[i]-lam[j])
-                #if dif < mindif:
-                    #mindif = dif
-                J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))/(lam[i]-lam[j])
-            else:
-                J[i,j] = (coth(alpha*lam[i]) + lam[i]*(1-numpy.square(coth(alpha*lam[i])))*alpha)
-    #print("mindif is {}".format(mindif))
-    return(J)
-
-def D(p,Q,lam,alpha):
-    return(torch.diag(torch.mv(torch.t(Q),p)/(lam*coth_torch(alpha*lam))))
-def dtaudq(p,dH,Q,lam,alpha):
-    N = len(p)
-    Jm = J(lam,alpha,len(p))
-    Dm = D(p,Q,lam,alpha)
-    M = torch.mm(Q,torch.mm(Dm,torch.mm(Jm,torch.mm(Dm,torch.t(Q)))))
-    delta = torch.zeros(N)
-    for i in range(N):
-        delta[i] = 0.5 * torch.trace(-torch.mm(M,dH[i,:,:]))
-
-    return(delta)
-
-def dtaudp(p,alpha,lam,Q):
-    return(Q.mv(torch.diag(1/softabs_map(lam,alpha)).mv((torch.t(Q).mv(p)))))
 
 def V(q):
     beta = q
