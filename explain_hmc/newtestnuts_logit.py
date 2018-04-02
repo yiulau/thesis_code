@@ -6,7 +6,7 @@ import numpy
 import pickle
 import time, cProfile, math
 from general_util import logsumexp, logsumexp_torch
-from nuts_util import NUTS, NUTS_criterion
+from nuts_util import NUTS
 from leapfrog_ult_util import leapfrog_ult as leapfrog
 dim = 5
 num_ob = 100
@@ -77,7 +77,7 @@ store = torch.zeros((chain_l,dim))
 begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
-    out = NUTS(q,0.12,H,leapfrog,NUTS_criterion,max_tdepth)
+    out = NUTS(q,0.12,H,leapfrog,max_tdepth)
     store[i,] = out[0].data # turn this on when using Nuts
     q.data = out[0].data # turn this on when using nuts
 

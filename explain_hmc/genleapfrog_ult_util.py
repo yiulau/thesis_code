@@ -123,6 +123,10 @@ def dtaudq(p,dH,Q,lam,alpha):
 def dtaudp(p,alpha,lam,Q):
     return(Q.mv(torch.diag(1/softabs_map(lam,alpha)).mv((torch.t(Q).mv(p)))))
 
+def genleapfrog_wrap(alpha,delta,V):
+    def inside(q,p,ep,pi):
+        return generalized_leapfrog(q,p,ep,alpha,delta,V)
+    return(inside)
 
 def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     #

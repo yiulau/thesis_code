@@ -7,8 +7,8 @@ import pickle
 import time, cProfile, math
 dim = 5
 num_ob = 100
-chain_l = 20
-burn_in = 10
+chain_l = 500
+burn_in = 100
 max_tdepth = 10
 
 recompile = False
@@ -33,7 +33,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-#fit = mod.sampling(data=data,refresh=0)
+fit = mod.sampling(data=data,refresh=0)
 
 #print(fit)
 
@@ -148,10 +148,10 @@ def NUTS_criterion(q_left,q_right,p_left,p_right):
 #q = Variable(torch.randn(dim),requires_grad=True)
 
 v = -1
-print(q)
-out = NUTS(q,0.12,pi,leapfrog,NUTS_criterion)
-print(out)
-exit()
+
+
+
+
 epsilon = 0.11
 
 store = torch.zeros((chain_l,dim))
@@ -161,7 +161,7 @@ for i in range(chain_l):
     out = NUTS(q,0.12,pi,leapfrog,NUTS_criterion)
     store[i,] = out[0].data # turn this on when using Nuts
     q.data = out[0].data # turn this on when using nuts
-    print("q is {} tree length {}".format(q.data, out[1]))
+    #print("q is {} tree length {}".format(q.data, out[1]))
 total = time.time() - begin
 print("total time is {}".format(total))
 print("length of chain is {}".format(chain_l))
@@ -175,4 +175,4 @@ print("store is {}".format(store))
 #print(empCov)
 print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
-#print(fit)
+print(fit)
