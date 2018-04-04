@@ -11,8 +11,8 @@ from general_util import logsumexp_torch
 
 dim = 5
 num_ob = 100
-chain_l = 50
-burn_in = 10
+chain_l = 500
+burn_in = 100
 max_tdepth = 10
 
 recompile = False
@@ -37,7 +37,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-#fit = mod.sampling(data=data,refresh=0)
+fit = mod.sampling(data=data,refresh=0)
 
 #print(fit)
 
@@ -115,4 +115,4 @@ emmean = numpy.mean(store,axis=0)
 #print(empCov)
 print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
-#print(fit)
+print(fit)

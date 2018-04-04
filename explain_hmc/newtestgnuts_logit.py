@@ -36,7 +36,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 
 #print(fit)
 
@@ -61,13 +61,17 @@ def H(q,p,return_float):
         return((V(q)+T(p)).data[0])
     else:
         return((V(q)+T(p)))
+
+def p_sharp(q,p):
+    p_s = p.data
+    return(p_s)
 epsilon = 0.11
 
 store = torch.zeros((chain_l,dim))
 begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
-    out = GNUTS(q,0.12,H,leapfrog,max_tdepth)
+    out = GNUTS(q,0.12,H,leapfrog,max_tdepth,p_sharp)
     store[i,] = out[0].data # turn this on when using Nuts
     q.data = out[0].data # turn this on when using nuts
     #print("q is {} tree length {}".format(q.data, out[1]))

@@ -27,7 +27,7 @@ def leapfrog_window(q,p,epsilon,H_fun,logw_old,qprop_old,pprop_old):
     p.data -= q.grad.data * 0.5 * epsilon
     q.grad.data.zero_()
     q.data += epsilon * p.data
-    H = H_fun(q,p)
+    H = H_fun(q,p,False)
     H.backward()
     p.data -= q.grad.data * 0.5 * epsilon
     q.grad.data.zero_()

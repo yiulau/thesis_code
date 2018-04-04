@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from torch.autograd import Variable,grad
 from leapfrog_ult_util import HMC_alt_windowed, leapfrog_window
-from general_util import logsumexp, logsumexp_torch,
+from general_util import logsumexp, logsumexp_torch
 import pystan
 import numpy, math
 import pickle
@@ -34,7 +34,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 #print(fit)
 #exit()
 
@@ -55,9 +55,12 @@ def V(beta):
 def T(p):
     return(torch.dot(p,p)*0.5)
 
-def H(q,p):
-    return(V(q)+T(p))
 
+def H(q,p,return_float):
+    if return_float:
+        return((V(q)+T(p)).data[0])
+    else:
+        return((V(q)+T(p)))
 
 
 store = torch.zeros((chain_l,dim))

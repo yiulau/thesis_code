@@ -66,7 +66,7 @@ def H(q,p,return_float):
 
 def dG_dt(q,p):
     # q_grad is dU/dq
-    # exxact form depends on the energy function
+    # exact form depends on the momentum distribution ika the metric
     H_fun = H(q, p,False)
     H_fun.backward()
     q_grad = q.grad.data.clone()
