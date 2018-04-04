@@ -6,6 +6,9 @@ import numpy
 import pickle
 import time, cProfile, math
 from genleapfrog_ult_util import getH, getdH, getdV, eigen, softabs_map, dphidq, dtaudp, dtaudq, generate_momentum,generalized_leapfrog
+from nuts_util import GNUTS
+from general_util import logsumexp_torch
+
 dim = 5
 num_ob = 100
 chain_l = 50
@@ -34,7 +37,7 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 
 #print(fit)
 
@@ -47,14 +50,12 @@ p = Variable(torch.randn(dim))
 
 
 
-def V(q):
-    beta = q
-    likelihood = torch.dot(beta,torch.mv(torch.t(X),y)) - \
-    torch.sum(torch.log(1+torch.exp(torch.mv(X,beta))))
-    prior = -torch.dot(beta,beta) * 0.5
+def V(beta):
+    likelihood = torch.dot(beta, torch.mv(torch.t(X), y)) - \
+                 torch.sum(logsumexp_torch(Variable(torch.zeros(num_ob)), torch.mv(X, beta)))
+    prior = -torch.dot(beta, beta) * 0.5
     posterior = prior + likelihood
     return(-posterior)
-
 
 def T(q,alpha):
     def T_givenq(p):
@@ -66,68 +67,41 @@ def T(q,alpha):
         inv_exp_H = torch.mm(torch.mm(Q,torch.diag(1/temp)),torch.t(Q))
         o = 0.5 * torch.dot(p.data,torch.mv(inv_exp_H,p.data))
         temp2 = 0.5 * torch.log((temp)).sum()
-        #print("o is {}".format(o))
-
         return(o + temp2)
     return(T_givenq)
 
-def pi_wrap(alpha):
-    def inside(x,y):
-        return(H(x,y,alpha))
+def pi_wrap(alpha,return_float):
+    def inside(x,y,return_float):
+        return(H(x,y,alpha,return_float))
     return inside
-def H(q,p,alpha):
-    return(V(q).data[0] + T(q,alpha)(p))
+def H(q,p,alpha,return_float):
+    if return_float:
+        return(V(q).data[0] + T(q,alpha)(p))
+    else:
+        return(V(q) + Variable(T(q,alpha)(p)))
 
 def genleapfrog_wrap(alpha,delta,V):
     def inside(q,p,ep,pi):
         return generalized_leapfrog(q,p,ep,alpha,delta,V)
     return(inside)
-def pi(q,p):
-    beta = q
-    likelihood = torch.dot(beta, torch.mv(torch.t(X), y)) - \
-                 torch.sum(torch.log(1 + torch.exp(torch.mv(X, beta))))
-    prior = -torch.dot(beta, beta) * 0.5
-    posterior = prior + likelihood
-
-    momentum = torch.dot(p,p) * 0.5
-
-    return(-posterior + momentum)
 
 def p_sharp(q,p):
     lam, Q = eigen(getH(q, V).data)
     p_s = dtaudp(p.data, alp, lam, Q)
     return(p_s)
 
-
-
-
-
-v = -1
-#q_clone = q.clone()
-#epsilon = 0.11
 alp = 1e6
-#print("q is {}".format(q))
-fi_fake = pi_wrap(alp)
+fi_fake = pi_wrap(alp,True)
 gleapfrog = genleapfrog_wrap(alp,0.1,V)
-#for _ in range(10):
-#    out = gleapfrog(q, p, 0.1, fi_fake)
-#    q.data = out[0].data
-#    p.data = out[1].data
-#o = gleapfrog(q,p,0.1,fi_fake)
-#print("10 gleapforg q {}".format(q))
-#o = NUTS(q_clone,0.1,fi_fake,gleapfrog,NUTS_criterion)
-#print("propsed q {}".format(o))
-#exit()
-#print(o)
+
 store = torch.zeros((chain_l,dim))
 begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
-    #out = NUTS(q,0.12,pi,leapfrog,NUTS_criterion)
-    out = NUTS(q,0.1,fi_fake,gleapfrog,NUTS_criterion)
+    out = GNUTS(q,0.1,fi_fake,gleapfrog,10,p_sharp)
     store[i,] = out[0].data # turn this on when using Nuts
     q.data = out[0].data # turn this on when using nuts
-    print("q is {} tree length {}".format(q.data,out[1]))
+
 total = time.time() - begin
 print("total time is {}".format(total))
 print("length of chain is {}".format(chain_l))
