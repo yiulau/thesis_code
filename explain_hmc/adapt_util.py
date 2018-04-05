@@ -1,23 +1,22 @@
 import math, numpy
-
+from torch.autograd import Variable
 
 def find_reasonable_ep(q,p,H_fun,integrator):
     # integrator can be leapfrog or gleapfrog using any possible metric
     ep = 1
     qprime,pprime = integrator(q,p,ep,H_fun)
     a = 2 * (-H_fun(qprime,pprime,True) + H_fun(q,p,True) > math.log(0.5)) - 1
-    a = a[0]
     while a * (-H_fun(qprime, pprime,True) + H_fun(q, p,True)) > (-a * math.log(2)):
         ep = math.exp(a) * ep
         qprime,pprime = integrator(q,p,ep,H_fun)
     return(ep)
 
 
-def dual_averaging_ep(tune_l=2000,time=1.4,gamma=0.05,t_0=10,kappa=0.75,target_delta=0.65,sampler_onestep,generate_momentum,
-                      H_fun,integrator,q):
+def dual_averaging_ep(sampler_onestep,generate_momentum,H_fun,integrator,q,
+                      tune_l=2000, time=1.4, gamma=0.05, t_0=10, kappa=0.75, target_delta=0.65):
     # sampler_onestep should take an q pytorch variable and returns the next accepted q variable as well as acceptance_rate
     # find_reasonable_ep, should only depend on
-    p = generate_momentum(q)
+    p = Variable(generate_momentum(q))
     ep = find_reasonable_ep(q,p,H_fun,integrator)
     mu = numpy.log(10 * ep)
     bar_ep_i = 1

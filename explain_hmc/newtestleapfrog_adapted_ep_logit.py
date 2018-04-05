@@ -9,7 +9,7 @@ from leapfrog_ult_util import leapfrog_ult as leapfrog
 from leapfrog_ult_util import HMC_alt_ult
 from general_util import logsumexp_torch
 from adapt_util import dual_averaging_ep
-
+from generate_momentum_util import generate_momentum_wrap
 dim = 4
 num_ob = 25
 chain_l = 2000
@@ -27,7 +27,7 @@ y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 X_np = numpy.random.randn(num_ob,dim)
 
 df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
-print(df)
+#print(df)
 dfm = df.as_matrix()
 #print(dfm)
 #print(dfm.shape)
@@ -80,13 +80,17 @@ gamma = 0.05
 t_0 = 10
 kappa = 0.75
 target_delta = 0.65
-store_ep = dual_averaging_ep(tune_l=2000,time=1.4,gamma=0.05,t_0=10,kappa=0.75,target_delta=0.65,HMC_alt_ult,generate_momentum,
-                      H,leapfrog,q)
+generate_momentum = generate_momentum_wrap(metric="unit_e")
+
+store_ep = dual_averaging_ep(tune_l=2000,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
+                             target_delta=0.65,sampler_onestep=HMC_alt_ult,
+                             generate_momentum=generate_momentum,H_fun=H,
+                             integrator=leapfrog,q=q)
 store_ep = store_ep/store_ep[len(store_ep)-1]
 #import matplotlib.pyplot as plt
 #plt.plot(store_ep[-1500:])
 #plt.show()
-#exit()
+exit()
 
 #ep = 0.1
 #num_step = 10
