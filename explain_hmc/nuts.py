@@ -1,6 +1,7 @@
 import numpy
 import torch
 from torch.autograd import Variable
+
 def NUTS(q_init,epsilon,pi,leapfrog,NUTS_criterion):
     p = Variable(torch.randn(len(q_init)),requires_grad=True)
     q_left = Variable(q_init.data.clone(),requires_grad=True)
@@ -123,25 +124,27 @@ p = Variable(torch.randn(2),requires_grad=True)
 #out1 = leapfrog(q,p,0.1,pi)
 
 #print("leapfrog_explicit-inside")
-#out2 = leapfrog_explicit(q,p,0.1)
+#out2 = leapfrog_explicit(q,p,0.1,pi)
 
 #print("output of leapfrog is {}".format(out1))
-#print("output of leapfrog_explicity is {}".format(out2))
+#print("output of leapfrog_explicit is {}".format(out2))
 #exit()
-chain_l = 1000
+chain_l = 5000
+burn_in = 1000
 store = torch.zeros((chain_l,2))
 
 for i in range(chain_l):
     print("round {}".format(i))
     #out = HMC(0.1,10,q)
-    out = HMC_alt(0.1,10,q,leapfrog,pi)
-    #out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
-    #print("tree depth is {}".format(out[1]))
-    #store[i,] = out[0].data
-    store[i,]=out.data
-    q.data = out.data
-    #q.data = out[0].data
+    #out = HMC_alt(0.1,10,q,leapfrog_explicit,pi)
+    out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
+    print("tree depth is {}".format(out[1]))
+    store[i,] = out[0].data # turn this on when using Nuts
+    #store[i,]=out.data # turn this on when using regular hmc
+    #q.data = out.data # turn this on when using regular hmc
+    q.data = out[0].data # turn this on when using nuts
 
+store = store[burn_in:,]
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
 emmean = numpy.mean(store,axis=0)
@@ -161,7 +164,7 @@ v=(numpy.random.randn(1)>0)*2 -1
 #print(NUTS_criterion(q+1,q,p+1,p))
 
 #print(BuildTree(q,p,-1,1,0.1,leapfrog,pi,NUTS_criterion))
-chain_l = 200
+chain_l = 20
 store = torch.zeros((chain_l,2))
 for i in range(chain_l):
     out = NUTS(q,0.2,pi,leapfrog,NUTS_criterion)

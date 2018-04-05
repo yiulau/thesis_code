@@ -43,7 +43,7 @@ def leapfrog_window(q,p,epsilon,H_fun,logw_old,qprop_old,pprop_old):
         logw_prop = logw_old
     return(q,p,qprop,pprop,logw_prop,accep_rate)
 
-def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun,windowed):
+def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun):
     # Input:
     # current_q Pytorch Variable
     # H_fun(q,p,return_float) returns Pytorch Variable or float
