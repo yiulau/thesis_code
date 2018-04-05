@@ -8,6 +8,8 @@ import numpy
 import pickle
 import pandas as pd
 from generate_momentum_util import T_fun_wrap
+from adapt_util import return_update_metric_ep_list
+
 import cProfile
 dim = 4
 num_ob = 25
@@ -101,6 +103,34 @@ def leapfrog_mg(q,p,epsilon,H_fun):
     q.grad.data.zero_()
     return(q,p)
 
+def leapfrog_mg_explicit(q,p,epsilon,H_fun):
+    # Input:
+    # q, p pytorch variables
+    # epsilon float
+    # H_fun(q,p,return_float) function that maps (q,p) to its energy . Should return a pytorch Variable
+    # in this implementation the original (q,p) is modified after running leapfrog(q,p)
+    p.data -= H_fun.dH_dq(q) * 0.5 * epsilon
+    q.data += H_fun.dH_dp(p) * epsilon
+    p.data -= H_fun.dH_dq(q) * 0.5 * epsilon
+    #H = H_fun(q,p,return_float=False)
+    #H.backward()
+    #p.data -= q.grad.data * 0.5 * epsilon
+    #q.grad.data.zero_()
+    #p.grad.data.zero_()
+    #H = H_fun(q,p,return_float=False)
+    #H.backward()
+    #q.data += epsilon * p.grad.data
+    #q.grad.data.zero_()
+    #p.grad.data.zero_()
+    #H = H_fun(q,p,return_float=False)
+    #H.backward()
+    #p.data -= q.grad.data * 0.5 * epsilon
+    #q.grad.data.zero_()
+    return(q,p)
+out = return_update_metric_ep_list(530)
+
+print(out)
+exit()
 out1 = leapfrog_ult(q,p,0.1,H)
 
 out2 = leapfrog_mg(q_,p_,0.1,H)

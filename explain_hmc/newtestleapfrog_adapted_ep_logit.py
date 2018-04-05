@@ -80,10 +80,12 @@ gamma = 0.05
 t_0 = 10
 kappa = 0.75
 target_delta = 0.65
-generate_momentum = generate_momentum_wrap(metric="unit_e")
-store_ep,start_q = full_adapt(tune_l=75,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
+metrcs = "dense_e"
+covar = torch.eye(dim,dim)
+generate_momentum = generate_momentum_wrap(metric=metrcs,Cov=covar)
+store_ep,start_q = full_adapt(metric=metrcs,tune_l=250,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
                              target_delta=0.65,sampler_onestep=HMC_alt_ult,
-                             generate_momentum=generate_momentum,H_fun=H,
+                             generate_momentum=generate_momentum,H_fun=H,V=V,
                              integrator=leapfrog,q=q)
 #store_ep,start_q = dual_averaging_ep(tune_l=20,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
 #                             target_delta=0.65,sampler_onestep=HMC_alt_ult,
