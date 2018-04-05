@@ -22,7 +22,7 @@ y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 X_np = numpy.random.randn(num_ob,dim)
 
 df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
-print(df)
+#print(df)
 dfm = df.as_matrix()
 #print(dfm)
 #print(dfm.shape)
@@ -172,6 +172,7 @@ for i in range(tune_l):
     #print("alpha is {}".format(alpha))
     bar_H_i = (1-1/(i+ 1 +t_0)) * bar_H_i + (1/(i + 1+ t_0)) * (target_delta - alpha)
     #print("bar_H_i {}".format(bar_H_i))
+    #exit()
     logep = mu - numpy.sqrt(i+1)/gamma * bar_H_i
     #print("logep is {}".format(logep))
     logbarep = numpy.power(i+1,-kappa) * logep + (1-numpy.power(i+1,-kappa))* numpy.log(bar_ep_i)
@@ -181,6 +182,8 @@ for i in range(tune_l):
     #print("bar_ep_i is {}".format(bar_ep_i))
     ep = bar_ep_i
 
+print(ep)
+exit()
 store_ep = store_ep/ep
 import matplotlib.pyplot as plt
 plt.plot(store_ep[-1500:])

@@ -8,7 +8,7 @@ import pandas as pd
 from leapfrog_ult_util import leapfrog_ult as leapfrog
 from leapfrog_ult_util import HMC_alt_ult
 from general_util import logsumexp_torch
-from adapt_util import dual_averaging_ep
+from adapt_util import dual_averaging_ep, full_adapt
 from generate_momentum_util import generate_momentum_wrap
 dim = 4
 num_ob = 25
@@ -81,33 +81,33 @@ t_0 = 10
 kappa = 0.75
 target_delta = 0.65
 generate_momentum = generate_momentum_wrap(metric="unit_e")
-
-store_ep = dual_averaging_ep(tune_l=2000,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
+store_ep,start_q = full_adapt(tune_l=75,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
                              target_delta=0.65,sampler_onestep=HMC_alt_ult,
                              generate_momentum=generate_momentum,H_fun=H,
                              integrator=leapfrog,q=q)
-store_ep = store_ep/store_ep[len(store_ep)-1]
-#import matplotlib.pyplot as plt
-#plt.plot(store_ep[-1500:])
-#plt.show()
-exit()
+#store_ep,start_q = dual_averaging_ep(tune_l=20,time=1.4,gamma=0.05,t_0=10,kappa=0.75,
+#                             target_delta=0.65,sampler_onestep=HMC_alt_ult,
+ #                            generate_momentum=generate_momentum,H_fun=H,
+  #                           integrator=leapfrog,q=q)
 
-#ep = 0.1
-#num_step = 10
+#store_ep = store_ep/store_ep[len(store_ep)-1]
+#import matplotlib.pyplot as plt
+#plt.plot(store_ep)
+#plt.show()
+#exit()
+
+# convert to float because store_ep is numpy array
+ep = float(store_ep[len(store_ep)-1])
+#print(ep)
+#exit()
+num_step = max(1,round(time/ep))
 
 store = torch.zeros((chain_l,dim))
 for i in range(chain_l):
     print("round {}".format(i))
-    #out = HMC(0.1,10,q)
-    out = HMC_alt(ep,num_step,q,leapfrog,pi)
+    out = HMC_alt_ult(ep,num_step,q,leapfrog,H,generate_momentum)
     store[i,] = out[0].data
-    #out = NUTS(q,0.1,pi,leapfrog,NUTS_criterion)
-    #print("tree depth is {}".format(out[1]))
-    #store[i,] = out[0].data
-    #store[i,]=out.data
     q.data = out[0].data
-    #q.data = out[0].data
-    #print("q is {}".format(q.data))
 
 
 store = store[burn_in:,]
