@@ -1,12 +1,12 @@
 import torch
-from torch.autograd import Variable,grad
+from torch.autograd import Variable
 import numpy as np
 import pystan
 import pickle
-import time,cProfile
+import time
 import pandas as pd
 #from genleapfrog_ult_util import getH, getdH, getdV, eigen, softabs_map, dphidq, dtaudp, dtaudq, generate_momentum
-from genleapfrog_ult_util import rmhmc_step, getH, eigen, softabs_map
+from explicit.genleapfrog_ult_util import rmhmc_step, getH, eigen, softabs_map
 chain_l = 500
 burn_in = 100
 alp =1e6
@@ -44,7 +44,7 @@ num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 #print(data)
 
-fit = mod.sampling(data=data,refresh=0)
+#fit = mod.sampling(data=data,refresh=0)
 #print(fit)
 #exit()
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
@@ -65,8 +65,8 @@ def V(q):
 
 def T(q,alpha):
     def T_givenq(p):
-        H = getH(q,V)
-        out = eigen(H.data)
+        _,H_ = getH(q,V)
+        out = eigen(H_.data)
         lam = out[0]
         Q = out[1]
         temp = softabs_map(lam,alpha)
@@ -84,7 +84,8 @@ def H(q,p,alpha):
 
 store = torch.zeros((chain_l,dim))
 
-lam,Q = eigen(getH(q,V).data)
+g,H_ = getH(q,V)
+lam,Q = eigen(H_.data)
 
 begin = time.time()
 for i in range(chain_l):

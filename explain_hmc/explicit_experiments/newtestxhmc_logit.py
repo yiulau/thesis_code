@@ -1,16 +1,19 @@
 import pandas as pd
 import torch
-from torch.autograd import Variable,grad
-from leapfrog_ult_util import HMC_alt_windowed, leapfrog_window
-from general_util import logsumexp, logsumexp_torch
+from torch.autograd import Variable
 import pystan
-import numpy, math
+import numpy
 import pickle
-import pandas as pd
-dim = 4
-num_ob = 25
-chain_l = 2000
-burn_in = 1000
+import time
+from explicit.general_util import logsumexp_torch
+from explicit.leapfrog_ult_util import leapfrog_ult
+from explicit.nuts_util import NUTS_xhmc
+dim = 5
+num_ob = 100
+chain_l = 1000
+burn_in = 500
+max_tdepth = 10
+
 recompile = False
 if recompile:
     mod = pystan.StanModel(file="./alt_log_reg.stan")
@@ -22,7 +25,6 @@ mod = pickle.load(open('model.pkl', 'rb'))
 
 y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 X_np = numpy.random.randn(num_ob,dim)
-
 df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()
@@ -35,8 +37,8 @@ dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 #fit = mod.sampling(data=data,refresh=0)
+
 #print(fit)
-#exit()
 
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
 
@@ -62,24 +64,41 @@ def H(q,p,return_float):
     else:
         return((V(q)+T(p)))
 
+def dG_dt(q,p):
+    # q_grad is dU/dq
+    # exact form depends on the momentum distribution ika the metric
+    H_fun = H(q, p,False)
+    H_fun.backward()
+    q_grad = q.grad.data.clone()
+    q.grad.data.zero_()
+    return(torch.dot(p.data,p.data) - torch.dot(q.data,q_grad))
+
+
+
+
+
+
 
 store = torch.zeros((chain_l,dim))
+begin = time.time()
 for i in range(chain_l):
     print("round {}".format(i))
-    out = HMC_alt_windowed(0.1,10,q,leapfrog_window,H)[0]
-    store[i,]=out.data
-    q.data = out.data
-
-
+    out = NUTS_xhmc(q,0.12,H,leapfrog_ult,10,dG_dt,0.1)
+    store[i,] = out[0].data # turn this on when using Nuts
+    q.data = out[0].data # turn this on when using nuts
+    print("q is {} tree length {}".format(q.data, out[1]))
+total = time.time() - begin
+print("total time is {}".format(total))
+print("length of chain is {}".format(chain_l))
+print("length of burn in is {}".format(burn_in))
+print("Use logit")
 store = store[burn_in:,]
 store = store.numpy()
 empCov = numpy.cov(store,rowvar=False)
 emmean = numpy.mean(store,axis=0)
-print("length of chain is {}".format(chain_l))
-print("burn in is {}".format(burn_in))
+print("store is {}".format(store))
 #print(empCov)
 print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
-
 
 print(fit)
