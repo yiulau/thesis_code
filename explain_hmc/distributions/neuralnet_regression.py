@@ -24,10 +24,13 @@ class V_test_abstract(V):
 
         return()
 
-    def forward(self,input=None):
-        if input==None:
+    def forward(self,X=None,y=None):
+        if X==None:
             input_data = self.X
             target = self.target
+        else:
+            input_data = Variable(torch.from_numpy(X),requires_grad=False)
+            target = Variable(torch.from_numpy(y),requires_grad=False)
         out = Function.relu(self.layer1(input_data))
         out = self.layer2(out)
         criterion = nn.MSELoss()

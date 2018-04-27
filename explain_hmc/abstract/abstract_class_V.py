@@ -8,10 +8,10 @@ from explicit.genleapfrog_ult_util import eigen
 # if need to define explicit gradient do it
 
 class V(nn.Module):
-    __metaclass__ = abc.ABCMeta
     #def __init__(self,explicit_gradient):
     def __init__(self):
         super(V, self).__init__()
+        print("yes")
         self.V_setup()
         if self.explicit_gradient==None:
             raise ValueError("self.explicit_gradient need to be defined in V_setup")
@@ -22,18 +22,17 @@ class V(nn.Module):
         self.decides_if_flattened()
         self.V_higherorder_setup()
         self.point_generator = point(V=self)
-    @abc.abstractmethod
-    def V_setup(self):
+    #@abc.abstractmethod
+    #def V_setup(self):
         ### initialize function parameters
-        return()
-
-    @abc.abstractmethod
-    def forward(self):
-        return()
-
-    @abc.abstractmethod
-    def load_explicit_gradient(self):
-        return()
+    #    return()
+    #@abc.abstractmethod
+    #def forward(self):
+    #    return()
+    #@abc.abstractmethod
+    #def load_explicit_gradient(self):
+    #    raise NotImplementedError()
+    #    return()
     def forward_float(self):
         return(self.forward().data[0])
     def gradient(self):
@@ -43,14 +42,14 @@ class V(nn.Module):
             o.backward()
         else:
             self.load_explicit_gradient()
-    def getdV(self,q):
+    def getdV(self):
         #
         # return list of pytorch variables containing the gradient
         if not self.need_flatten:
             g = grad(self.forward(),self.list_var,create_graph=True)[0]
         else:
             g = grad(self.forward(), self.list_var, create_graph=True)
-        self.load_gradient(g)
+        #self.load_gradient(g)
         return(g)
 
     def getdV_tensor(self,q):
@@ -85,7 +84,7 @@ class V(nn.Module):
         self.load_gradient(g)
         self.load_Hessian(H)
         return (g,H)
-
+    # reimplement if need to get exact
     def getH_tensor(self,q):
         if not self.need_flatten:
             g = self.getdV()
@@ -339,28 +338,28 @@ class T(object):
             cur = cur + self.list_lens[i]
         return ()
 
-    @abc.abstractmethod
-    def evaluate_float(self):
+    #@abc.abstractmethod
+    #def evaluate_float(self):
         # returns T(q,p) -- float
-        return()
+    #    return()
 
-    @abc.abstractmethod
-    def dp(self):
+    #@abc.abstractmethod
+    #def dp(self):
         # takes and returns flattened_tensor
-        return()
-    @abc.abstractmethod
-    def dtaudp(self,lam=None,Q=None):
-        return()
+    #    return()
+    #@abc.abstractmethod
+    #def dtaudp(self,lam=None,Q=None):
+    #    return()
 
-    @abc.abstractmethod
-    def dtaudq(self,alpha=None,H_=None,dH=None):
+    #@abc.abstractmethod
+    #def dtaudq(self,alpha=None,H_=None,dH=None):
         # flattened_p,q
-        return()
+     #   return()
 
-    @abc.abstractmethod
-    def generate_momentum(self,lam=None,Q=None):
+    #@abc.abstractmethod
+    #def generate_momentum(self,lam=None,Q=None):
         # returns generated in a list that has the same shape as the original variables
-        return(self.store_momentum)
+     #   return(self.store_momentum)
 
 
 class H(object):

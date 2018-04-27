@@ -138,6 +138,31 @@ def return_update_metric_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=
                 output_list.append(counter-1)
     return(output_list)
 
+def return_update_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25):
+    # returns indices at which the chain updates epsilon once
+    if tune_l < ini_buffer + end_buffer + window_size:
+        return("error")
+    else:
+        cur_window_size = window_size
+        counter = 0
+        overshoots = False
+        output_list = []
+        while not overshoots:
+            if counter<ini_buffer:
+                counter+=1
+                output_list.append(counter - 1)
+            else:
+                counter = counter + cur_window_size
+                cur_window_size = cur_window_size * 2
+                overshoots = counter >= tune_l - end_buffer
+                if overshoots:
+                    output_list.append(tune_l-end_buffer-1)
+                else:
+                    output_list.append(counter-1)
+        if counter >  tune_l - end_buffer:
+            output_list.append(counter-1)
+    return(output_list)
+
 
 
 

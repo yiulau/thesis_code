@@ -13,23 +13,29 @@ class V_test_abstract(V):
 
     def V_setup(self,X,target,lay1_num,lay2_num):
         self.explicit_gradient = False
-        self.need_higherorderderiv = True
+        self.need_higherorderderiv = False
 
         self.lay1_num = lay1_num
         self.lay2_num = lay2_num
         self.X = Variable(torch.from_numpy(X),requires_grad=False)
         self.layer1 = nn.Linear(self.X.shape[1],lay1_num)
         self.layer2 = nn.Linear(self.lay1_num,self.lay2_num)
-        self.target = target
+        self.target = Variable(torch.from_numpy(target),requires_grad=False)
 
         return()
 
-    def forward(self):
+    def forward(self,X=None,y=None):
+        if X==None:
+            input_data = self.X
+            target = self.target
+        else:
+            input_data = Variable(torch.from_numpy(X),requires_grad=False)
+            target = Variable(torch.from_numpy(y),requires_grad=False)
 
-        out = Function.relu(self.layer1(self.X))
+        out = Function.relu(self.layer1(input_data))
         out = self.layer2(out)
         criterion = nn.NLLLoss
-        loss = criterion(out,self.target)
+        loss = criterion(out, target)
         return(loss)
 
     def p_y_given_theta(self,observed_point,posterior_point):

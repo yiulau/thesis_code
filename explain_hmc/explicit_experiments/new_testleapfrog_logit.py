@@ -1,13 +1,12 @@
-import pandas as pd
-import torch,math
-from torch.autograd import Variable,grad
-from leapfrog_ult_util import HMC_alt_ult, leapfrog_ult
-from general_util import logsumexp_torch, logsumexp
+import torch
+from torch.autograd import Variable
+from explicit.leapfrog_ult_util import HMC_alt_ult, leapfrog_ult
+from explicit.general_util import logsumexp_torch
 import pystan
 import numpy
 import pickle
 import pandas as pd
-import cProfile
+
 dim = 4
 num_ob = 25
 chain_l = 2000

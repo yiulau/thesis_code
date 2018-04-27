@@ -128,7 +128,7 @@ def full_adapt(metric,sampler_onestep,generate_momentum,H_fun,V,integrator,q,
 
     return(store_ep,q,generate_momentum,H_fun)
 
-def return_update_metric_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25):
+def return_update_metric_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25,window_size_change_factor=2):
     # returns indices at which the chain ends a covariance update window and also updates epsilon once
     if tune_l < ini_buffer + end_buffer + window_size:
         return("error")
@@ -139,14 +139,17 @@ def return_update_metric_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=
         output_list = []
         while not overshoots:
             counter = counter + cur_window_size
-            cur_window_size = cur_window_size * 2
-            overshoots = counter >= tune_l - end_buffer
+            cur_window_size = cur_window_size * window_size_change_factor
+            overshoots = (counter >= tune_l - end_buffer)
             if overshoots:
                 output_list.append(tune_l-end_buffer-1)
             else:
                 output_list.append(counter-1)
     return(output_list)
 
+def return_update_GPyOpt_list(tune_l,ini_buffer=0,end_buffer=0,window_size=25,window_size_change_factor=1):
+    out = return_update_metric_ep_list(tune_l,ini_buffer,end_buffer,window_size,window_size_change_factor)
+    return(out)
 
 def update_metric(generate_momentum,V,var,metric):
     if metric == "diag_e":

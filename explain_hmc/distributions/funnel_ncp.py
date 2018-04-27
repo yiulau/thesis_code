@@ -37,3 +37,9 @@ class V_test_abstract(V):
         return(out)
     def load_explcit_gradient(self):
         return()
+    def load_explicit_H(self):
+        # write down explicit hessian
+        return()
+    def load_explcit_dH(self):
+        # write down explicit 3 rd derivatives
+        return()
