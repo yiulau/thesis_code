@@ -85,7 +85,8 @@ class V_eightschool_ncp(V):
         # dmu dtau'
         out[self.J, self.J + 1] = - (theta_tilde/(sigma*sigma)).sum()*tau
         # dtau' dtau'
-        out[self.J + 1, self.J + 1] =  -100*tau*tau/((tau*tau+25)**2) + (theta_tilde*tau*(y-mu-2*theta_tilde*tau)/(sigma*sigma)).sum()
+        out[self.J + 1, self.J + 1] =  -100*tau*tau/((tau*tau+25)**2) \
+                                       + ((theta_tilde*tau*(y-mu-2*theta_tilde*tau))/(sigma*sigma)).sum()
         # dmu dtheta
         out[self.J, :self.J].copy_(out[:self.J, self.J])
         # dtau' dtheta_tilde
@@ -112,7 +113,7 @@ class V_eightschool_ncp(V):
         # dtheta_tilde dmu dtau'
         out[:self.J,self.J,self.J+1] = -tau/(sigma*sigma)
         # dtheta_tilde dtau' dtau'
-        out[:self.J,self.J+1,self.J+1] = tau*(y-mu-2*theta_tilde-2*theta_tilde*tau)/(sigma*sigma)
+        out[:self.J,self.J+1,self.J+1] = tau*(y-mu-4*theta_tilde*tau)/(sigma*sigma)
         # fill in rest
         out[:self.J, self.J + 1,:self.J].copy_(out[:self.J,:self.J,self.J+1])
         out[:self.J, self.J + 1,self.J].copy_(out[:self.J,self.J,self.J+1])
@@ -133,7 +134,7 @@ class V_eightschool_ncp(V):
         # dtau' dtheta_tilde dtheta_tilde
         case_3matrix[:self.J, :self.J].copy_(torch.diag(-2 * tau*tau/(sigma*sigma)))
         # dtau' dtheta_tilde dmu
-        case_3matrix[:self.J, self.J] = (-2*tau)/(sigma*sigma)
+        case_3matrix[:self.J, self.J] = (-tau)/(sigma*sigma)
         # dtau' dtheta_tilde dtau'
         case_3matrix[:self.J,self.J+1] = tau*(y-mu-4*tau*theta_tilde)/(sigma*sigma)
         # dtau' dmu dtau'

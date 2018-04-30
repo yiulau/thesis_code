@@ -1,8 +1,12 @@
 from distributions.funnel_cp import V_funnel
 import torch
+from finite_differences.finite_diff_funcs import compute_and_display_results
 funnel_object = V_funnel()
 
 funnel_object.beta.data.copy_(torch.randn(10))
+compute_and_display_results(funnel_object,10)
+
+exit()
 cur_beta = funnel_object.beta.data.clone()
 
 
@@ -110,14 +114,14 @@ def finite_diff_dH():
     for i in range(10):
         for j in range(10):
             for k in range(10):
-                h = 1e-2
+                h = 1e-3
                 def fun_wrapped(diffi,diffj,diffk):
                     funnel_object.beta.data.copy_(cur_beta)
                     funnel_object.beta.data[i]=funnel_object.beta.data[i]+diffi
                     funnel_object.beta.data[j]=funnel_object.beta.data[j]+diffj
                     funnel_object.beta.data[k] = funnel_object.beta.data[k] + diffk
                     temp = funnel_object.forward().data[0]
-
+                    funnel_object.beta.data.copy_(cur_beta)
                     return(temp)
                 #print(cur_vari)
                 #print(cur_varj)
@@ -126,6 +130,51 @@ def finite_diff_dH():
     return(out)
 fin_diff_dH = finite_diff_dH()
 
+
+import time
+num_rep =10
+time_total_explicit = 0
+time_total_finite = 0
+time_total_autograd = 0
+store_diff_exact_finite = []
+store_diff_autograd_finite = []
+store_diff_autograd_exact = []
+for i in range(num_rep):
+    funnel_object.beta.data.copy_(torch.randn(10))
+    cur_beta = funnel_object.beta.data.clone()
+    time_temp = time.time()
+    explicit_dH = funnel_object.load_explicit_dH()
+    time_total_explicit += time.time()-time_temp
+    time_temp = time.time()
+    fin_diff_dH = finite_diff_dH()
+    time_total_finite += time.time() - time_temp
+    time_temp = time.time()
+    autograd_dH = funnel_object.getdH()
+    time_total_autograd += time.time()-time_temp
+
+    l2norm_diff3rdderiv = ((explicit_dH-fin_diff_dH)*(explicit_dH-fin_diff_dH)).sum()
+    store_diff_exact_finite.append(l2norm_diff3rdderiv)
+    print("l2 norm difference between exact and finite diff for the dH {} ".format(l2norm_diff3rdderiv))
+
+    l2norm_diff3rdderiv_autograd = ((autograd_dH - fin_diff_dH) * (autograd_dH - fin_diff_dH)).sum()
+    store_diff_autograd_finite.append(l2norm_diff3rdderiv_autograd)
+    print("l2 norm difference between autograd and finite diff for the dH {} ".format(l2norm_diff3rdderiv_autograd))
+
+    l2norm_diff3rdderiv_autograd_explicit = ((autograd_dH - explicit_dH) * (autograd_dH - explicit_dH)).sum()
+    store_diff_autograd_exact.append(l2norm_diff3rdderiv_autograd_explicit)
+    print("l2 norm difference between autograd and exact diff for the dH {} ".format(
+        l2norm_diff3rdderiv_autograd_explicit))
+
+print("explicit time {}".format(time_total_explicit))
+print("finite time {}".format(time_total_finite))
+print("autograd time {}".format(time_total_autograd))
+
+import numpy
+print("mean exact-finite diff{}".format(numpy.mean(store_diff_exact_finite)))
+print("mean autograd-finite diff{}".format(numpy.mean(store_diff_autograd_finite)))
+print("mean autograd-exact diff{}".format(numpy.mean(store_diff_autograd_exact)))
+
+exit()
 
 #print(fin_diff_dH)
 
