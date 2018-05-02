@@ -1,16 +1,13 @@
-from abstract_class_V import T
+from abstract.abstract_class_T import T
+from abstract.abstract_class_point import point
 import torch
 class T_dense_e(T):
-    def __init__(self):
-        super(T_dense_e, self).__init__()
-        return()
+    def __init__(self,metric,linkedV):
+        self.metric = metric
+        super(T_dense_e, self).__init__(linkedV)
 
-    def evaluate_float(self,p=None):
-        if p ==None:
-            Lp = torch.mv(self.metric._flattened_covL, self.flattened_tensor)
-        else:
-            Lp = torch.mv(self.metric._flattened_covL, p.flattened_tensor)
-
+    def evaluate_scalar(self):
+        Lp = torch.mv(self.metric._flattened_covL, self.flattened_tensor)
         output = torch.dot(Lp, Lp)
         return(output)
 
@@ -28,13 +25,15 @@ class T_dense_e(T):
             self.load_flattened_tenosr_to_target_list(self.gradient,torch.mv(self.metric._flattened_cov, self.p[0]))
             return (self.gradient)
 
-    def dp(self,p):
-        out = torch.mv(self.metric._flattened_cov, self.p[0])
+    def dp(self,p_flattened_tensor):
+
+        out = torch.mv(self.metric._flattened_cov, p_flattened_tensor)
         return(out)
     def dtaudq(self):
         raise ValueError("should not call this function")
 
     def generate_momentum(self):
-        self.flattened_graident.copy_(torch.mv(self.metric._flattened_covL, torch.randn(self.dim)))
-        self.load_flattened_tenosr_to_target_list(self.flattened_gradient, self.store_momentum)
-        return(self.store_momentum)
+        out = point(None, self)
+        out.flattened_tensor.copy_(torch.mv(self.metric._flattened_covL, torch.randn(self.dim)))
+        out.load_flatten()
+        return(out)

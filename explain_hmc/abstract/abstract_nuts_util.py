@@ -1,10 +1,11 @@
 from torch.autograd import Variable
 import torch, numpy, math
 from explicit.general_util import logsumexp, stable_sum
-
+from time_diagnostics import time_diagnositcs
 
 def abstract_NUTS(q_init,epsilon,V,T,H_fun,leapfrog,max_tdepth):
     # input and output are point objects
+    H_fun.diagnostics = time_diagnositcs()
     p = T.generate_momentum(q_init)
     q_left = q_init.point_clone()
     q_right =q_init.point_clone()
@@ -31,9 +32,11 @@ def abstract_NUTS(q_init,epsilon,V,T,H_fun,leapfrog,max_tdepth):
         s = s_prime and abstract_NUTS_criterion(q_left,q_right,p_left,p_right)
         j = j + 1
         s = s and (j<max_tdepth)
+        H_fun.diagnostics.update_time()
     return(q_prop,j)
 def abstract_GNUTS(q_init,epsilon,V,T,H_fun,leapfrog,max_tdepth,p_sharp_fun):
     # sum_p should be a tensor instead of variable
+    H_fun.diagnostics = time_diagnositcs()
     p = T.generate_momentum(q_init)
     q_left = q_init.point_clone()
     q_right = q_init.point_clone()
@@ -66,8 +69,10 @@ def abstract_GNUTS(q_init,epsilon,V,T,H_fun,leapfrog,max_tdepth,p_sharp_fun):
         s = s_prime and abstract_gen_NUTS_criterion(p_sleft,p_sright,sum_p)
         j = j + 1
         s = s and (j<max_tdepth)
+    H_fun.diagnostics.update_time()
     return(q_prop,j)
 def abstract_NUTS_xhmc(q_init,epsilon,H_fun,leapfrog,max_tdepth,dG_dt,xhmc_delta):
+    H_fun.diagnostics = time_diagnositcs()
     p = q_init.point_clone()
     q_left = q_init.point_clone()
     q_right = q_init.point_clone()
@@ -97,6 +102,7 @@ def abstract_NUTS_xhmc(q_init,epsilon,H_fun,leapfrog,max_tdepth,dG_dt,xhmc_delta
         s = s_prime and abstract_xhmc_criterion(ave,xhmc_delta,math.pow(2,j))
         j = j + 1
         s = s and (j<max_tdepth)
+    H_fun.diagnostics.update_time()
     return(q_prop,j)
 def abstract_BuildTree_nuts(q,p,v,j,epsilon,leapfrog,H_fun):
     if j ==0:

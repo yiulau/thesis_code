@@ -1,12 +1,15 @@
 import torch, numpy, math
-
+from abstract.abstract_class_T import T
+from abstract.abstract_class_point import point
 
 class T_softabs_diag_outer_product_e(T):
     def __init__(self):
         super(T_softabs_diag_outer_product_e, self).__init__()
         return ()
 
-    def evaluate_float(self,dV=None,p=None):
+    def evaluate_float(self):
+        dV = self.linkedV.getV()
+        p = self.flattened_tensor
         mlambda, mlogdetmetric = self.fcomputemetric(dV)
         temp = mlambda * p
         out = 0.5 * torch.dot(temp, p) + 0.5 * mlogdetmetric
@@ -48,7 +51,10 @@ class T_softabs_diag_outer_product_e(T):
         if mlambda==None:
             mlambda,_ = self.fcomputemetric()
           # computed by fcomputemetric
-        out = torch.randn(len(self.dim)) / torch.sqrt(mlambda)
+        #out = torch.randn(len(self.dim)) / torch.sqrt(mlambda)
+        out = point(None, self)
+        out.flattened_tensor.copy_(torch.randn(len(self.dim)) / torch.sqrt(mlambda))
+        out.load_flatten()
         return (out)
 
     def dphi_dq(self,p_flattened_tensor=None,mlambda=None,dV=None,mH=None):

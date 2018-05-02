@@ -10,14 +10,20 @@ class metric(object):
             pass
         elif name=="diag_e":
             self.num_var = V_instance.num_var
-            self._sd_list = numpy.empty(self.num_var, dtype=torch.FloatTensor)
-            self._var_list = numpy.empty(self.num_var,dtype=torch.FloatTensor)
-            self._var_vec = torch.zeros(V_instance.dim)
-            self._sd_vec = torch.zeros(V_instance.dim)
+            self.store_shapes = V_instance.store_shapes
+            self.store_lens = V_instance.store_lens
+            self._sd_list_tensor = numpy.empty(self.num_var, dtype=type(V_instance.flattened_tensor))
+            for i in range(self.num_var):
+                self._sd_list_tensor[i] = torch.ones(self.store_shapes[i])
+            self._var_list_tensor = numpy.empty(self.num_var,dtype=type(V_instance.list_var[0]))
+            for i in range(self.num_var):
+                self._var_list_tensor[i] = torch.ones(self.store_shapes[i])
+            self._var_vec = torch.ones(V_instance.dim)
+            self._sd_vec = torch.ones(V_instance.dim)
         elif name=="dense_e":
             # covL * covL^T = cov
-            self._flattened_covL = torch.zeros(V_instance.dim,V_instance.dim)
-            self._flattened_cov = torch.zeros(V_instance.dim,V_instance.dim)
+            self._flattened_covL = torch.eye(V_instance.dim,V_instance.dim)
+            self._flattened_cov = torch.eye(V_instance.dim,V_instance.dim)
         elif name=="softabs" or name=="softabs_diag" or name=="softabs_outer_product" or name=="softabs_diag_outer_product":
             if alpha==None:
                 raise ValueError("alpha needs be defined for softabs metric")

@@ -173,26 +173,39 @@ def J(lam,alpha,length):
     upper_softabs_thresh = 1000
     J = torch.zeros(length,length)
     i = 0
+
+
+
     while i < length:
         j =0
         while j <=i:
             dif = abs(lam[i]-lam[j])
             if dif < jacobian_thresh:
+
                 # either i = j or lam[i] approx lam[j]
                 alp_lam = lam[i] * alpha
-                if alp_lam < lower_softabs_thresh:
+
+                if abs(alp_lam) < lower_softabs_thresh:
                     # lam[i] too small
+
                     J[i,j] = (2./3.) * alp_lam * (1.- (2./15.)*alp_lam*alp_lam)
                 elif alp_lam > upper_softabs_thresh:
+
                     # lam blows up
                     # 1 if lam > 0 , -1 otherwise
                     J[i,j] = 2*float(lam[i]>0)-1
                 else:
-                    J[i, j] = (coth(alpha * lam[i]) + lam[i] * (1 - (coth(alpha * lam[i]))**2) * alpha)
+
+                    J[i,j] = (coth(alpha * lam[i]) + lam[i] * (1 - (coth(alpha * lam[i]))**2) * alpha)
             else:
+
                 J[i,j] = (lam[i]*coth(alpha*lam[i]) - lam[j]*coth(alpha*lam[j]))/(lam[i]-lam[j])
+            J[j,i] = J[i,j]
             j = j + 1
+
         i = i + 1
+
+
     return(J)
 
 def D(p,Q,lam,alpha):

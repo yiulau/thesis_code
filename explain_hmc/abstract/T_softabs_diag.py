@@ -1,12 +1,14 @@
 import torch, numpy
-class T_softabs_e(T):
-    def __init__(self):
-        super(T_softabs_e, self).__init__()
-        return ()
+from abstract.abstract_class_T import T
+from abstract.abstract_class_point import point
+class T_softabs_diag_e(T):
+    def __init__(self,metric,linkedV):
+        self.metric = metric
+        super(T_softabs_diag_e, self).__init__(linkedV)
 
-    def evaluate_float(self,p_flattened_tensor):
+    def evaluate_float(self):
         mLogdetmetric,mlambda = self.fcomputeMetric()
-        out = torch.dot(mlambda * p_flattened_tensor, p_flattened_tensor) + 0.5 * mLogdetmetric
+        out = torch.dot(mlambda * self.flattened_tensor, self.flattened_tensor) + 0.5 * mLogdetmetric
         return (out)
 
 
@@ -28,10 +30,13 @@ class T_softabs_e(T):
         out = torch.mv(mgraddiagH, mgradhelper)
         return (out)
 
-    def generate_momentum(self,mlambda):
+    def generate_momentum(self,q):
 
-        out = torch.randn(len(mlambda)) / torch.sqrt(mlambda)
-        return ()
+        mlambda
+        out = point(None,self)
+        out.flattened_tensor.copy_(torch.randn(len(mlambda)) / torch.sqrt(mlambda))
+        out.load_flatten()
+        return (out)
 
     def dphi_dq(self,mdiagH, mlambda):
         msoftabsalpha = self.metric.msoftabsalpha

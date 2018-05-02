@@ -1,21 +1,19 @@
-from abstract_class_V import T
+from abstract.abstract_class_T import T
+from abstract.abstract_class_point import point
 import torch
 class T_diag_e(T):
-    def __init__(self):
-        super(T_diag_e, self).__init__()
-        return()
+    def __init__(self,metric,linkedV):
+        self.metric = metric
+        super(T_diag_e, self).__init__(linkedV)
 
-    def evaluate_float(self,p=None):
+    def evaluate_scalar(self):
         output = 0
-        if p==None:
-            for i in range(len(self.p)):
-                output += (self.p[i] * self.metric.sd_list[i] * self.p[i] * self.metric.sd_list[i]) * 0.5
-        else:
-            for i in range(len(p)):
-                output += (p[i] * self.metric.sd_list[i] * p[i] * self.metric.sd_list[i]) * 0.5
+        for i in range(len(self.list_var)):
+            output += (self.list_var[i].data * self.list_var[i].data*self.metric._var_list_tensor[i]).sum() * 0.5
+
         return(output)
-    def dp(self,flattened_tensor):
-        out = self.metric._var_vec * flattened_tensor
+    def dp(self,p_flattened_tensor):
+        out = self.metric._var_vec * p_flattened_tensor
         return(out)
     def dtaudp(self,p=None):
         if p==None:
@@ -30,6 +28,8 @@ class T_diag_e(T):
         raise ValueError("should not call this function")
 
     def generate_momentum(self):
-        for i in range(len(self.store_momentum)):
-            self.store_momentum[i].copy_(torch.randn(self.list_shapes[i]) * self.metric.sd_list[i])
-        return(self.store_momentum)
+
+        out = point(None, self)
+        out.flattened_tensor.copy_(self.metric._sd_vec * torch.randn(self.dim))
+        out.load_flatten()
+        return(out)

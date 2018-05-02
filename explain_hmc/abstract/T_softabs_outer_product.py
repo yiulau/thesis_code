@@ -1,10 +1,11 @@
 import torch, numpy, math
-from abstract_class_V import T
+from abstract.abstract_class_T import T
+from abstract.abstract_class_point import point
 
 
-class T_softabs_e(T):
+class T_softabs_outer_product(T):
     def __init__(self):
-        super(T_softabs_e, self).__init__()
+        super(T_softabs_outer_product, self).__init__()
         return ()
 
     def evaluate_float(self,p=None,q=None,dV=None):
@@ -76,7 +77,10 @@ class T_softabs_e(T):
 
         mH = mH * math.sqrt(gg / numpy.sinh(agg))
         mHL = torch.potrf(mH,upper=False)
-        return (torch.mv(mHL, torch.randn(len(dV))))
+        out = point(None, self)
+        out.flattened_tensor.copy_(torch.mv(mHL, torch.randn(len(dV))))
+        out.load_flatten()
+        return (out)
 
     def dphi_dq(self, dV=None,mH=None):
         if mH==None:
