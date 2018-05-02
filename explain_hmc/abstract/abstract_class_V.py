@@ -201,7 +201,7 @@ class V(nn.Module):
         return(var1_shape_container)
     def load_gradient(self,list_g):
         if not self.need_flatten:
-            self.gradient_tensor.copy_(list_g[0].data)
+            self.gradient_tensor.copy_(list_g.data)
         else:
             cur = 0
             for i in range(self.num_var):
