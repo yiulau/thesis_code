@@ -16,12 +16,12 @@ import torch
 
 #vo = V_banana()
 #vo = V_logistic_regression()
-vo = V_funnel()
-#vo = V_eightschool_cp()
-vo = V_eightschool_ncp()
-metrico = metric("softabs",vo,alpha=1e6)
+#vo = V_funnel()
+vo = V_eightschool_cp()
+#vo = V_eightschool_ncp()
+metrico = metric("softabs",vo,alpha=1)
 #metrico = metric("unit_e",vo)
-seed=1
+seed=34
 torch.manual_seed(seed)
 numpy.random.seed(seed)
 from abstract.T_unit_e import T_unit_e
@@ -30,7 +30,7 @@ from abstract.T_unit_e import T_unit_e
 #to = T(metrico,vo)
 Ho = Hamiltonian(vo,metrico)
 initq = Ho.V.q_point
-initq.flattened_tensor.copy_(torch.randn(10))
+initq.flattened_tensor.copy_(torch.randn(len((initq.flattened_tensor))))
 q = initq.point_clone()
 q.load_flatten()
 #print(q.flattened_tensor)
@@ -111,8 +111,8 @@ def plot_V_T(V_vec,T_vec,epsilon):
 #V_vec = numpy.random.randn(200)
 #T_vec = numpy.random.randn(200)
 #epsilon = 0.1
-V_vec = numpy.array(V_list)
-T_vec = numpy.array(T_list)
+V_vec = numpy.array(V_list[100:])
+T_vec = numpy.array(T_list[100:])
 
 plot_V_T(V_vec,T_vec,epsilon)
 
