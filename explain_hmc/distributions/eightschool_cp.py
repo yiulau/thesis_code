@@ -1,4 +1,4 @@
-from abstract_class_V_deprecated import V
+from abstract.abstract_class_V import V
 import torch
 import torch.nn as nn
 from torch.autograd import Variable

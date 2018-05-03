@@ -23,6 +23,7 @@ class V(nn.Module):
         self.decides_if_flattened()
         self.V_higherorder_setup()
         self.q_point = point(V=self)
+        self.diagnostics = None
     #@abc.abstractmethod
     #def V_setup(self):
         ### initialize function parameters
@@ -52,8 +53,8 @@ class V(nn.Module):
         else:
             g = grad(self.forward(), self.list_var, create_graph=True)
         #self.load_gradient(g)
-
-        self.diagnostics.add_num_grad(1)
+        if not self.diagnostics is None:
+            self.diagnostics.add_num_grad(1)
         return(g)
 
     def getdV_tensor(self,q=None):
@@ -65,7 +66,8 @@ class V(nn.Module):
         else:
             g = grad(self.forward(), self.list_var, create_graph=True)
             self.load_gradient(g)
-            self.diagnostics.add_num_grad(1)
+            if not self.diagnostics is None:
+                self.diagnostics.add_num_grad(1)
         return(self.gradient_tensor)
 
     def getH(self,q=None):
@@ -113,6 +115,13 @@ class V(nn.Module):
 
 
         return (self.gradient_tensor,self.Hessian_tensor)
+    def getdiagH_tensor(self,q=None):
+        assert self.explicit_gradient == True
+        #assert self.metric.name =="softabs_diag"
+        self.gradient_tensor.copy_(self.load_explicit_gradient())
+        self.diagH_tensor.copy_(self.load_explicit_diagH())
+        return(self.gradient_tensor,self.diagH_tensor)
+
 
     def getdH(self):
         if not self.need_flatten:
@@ -160,30 +169,16 @@ class V(nn.Module):
 
         return(self.gradient_tensor,self.Hessian_tensor,self.dH_tensor)
 
-    def get_mdiagH(self,q):
-        g,H = self.getH()
-        mdiagH = numpy.diag(H)
-        return(g,mdiagH)
-    def getdH_diagonal_tensor(self,q):
+
+    def get_graddiagH(self,q=None):
         #returns (dV,mdiagH,mgraddiagH)
-        self.load_point(q)
-        if not self.need_flatten:
-            g, mdiagH = self.getmdiagH(q)
-            mgraddiagH = torch.zeros(self.dim, self.dim, self.dim)
-            for i in range(self.dim):
-                    mgraddiagH[:, i] = grad(mdiagH[i], self.list_var, create_graph=False, retain_graph=True)[0].data
-        else:
-            g, mdiagH = self.getmdiagH()
-            mgraddiagH = numpy.empty(self.num_var, self.num_var)
-            for i in range(self.num_var):
-                for j in range(self.num_var):
-                    mgraddiagH[i,j] = self.block_2nd_deriv(mgraddiagH[i],self.list_var[j],True,True)
+        assert self.explicit_gradient == True
+        #assert self.metric.name == "softabs_diag"
+        self.gradient_tensor.copy_(self.load_explicit_gradient())
+        self.diagH_tensor.copy_(self.load_explicit_diagH())
+        self.graddiagH_tensor.copy_(self.load_explicit_graddiagH())
+        return(self.gradient_tensor,self.diagH_tensor,self.graddiagH_tensor)
 
-        self.load_graident(g)
-        self.load_mdiagH(mdiagH)
-        self.load_mgraddiagH(mgraddiagH)
-
-        return(self.gradient_tensor,self.mdiagH_tensor,self.mgraddiagH_tensor)
     def block_2nd_deriv(self,var1,var2,retain_graph,create_graph):
         # return dH/dvar1dvar2 in a multivariate numpy array with the shape of var1
         # where each entry is a pytorch Variable with the shape of var2
@@ -249,8 +244,8 @@ class V(nn.Module):
         self.gradient_tensor = torch.zeros(self.dim)
         self.list_var = list(self.parameters())
         if self.need_higherorderderiv == True:
-            self.mdiagH_tensor = torch.zeros(self.dim)
-            self.mgraddiagH_tensor = torch.zeros(self.dim, self.dim)
+            self.diagH_tensor = torch.zeros(self.dim)
+            self.graddiagH_tensor = torch.zeros(self.dim, self.dim)
             self.Hessian_tensor = torch.zeros((self.dim, self.dim))
             self.dH_tensor = torch.zeros((self.dim, self.dim, self.dim))
             #if self.metric.name == "softabs_diag":

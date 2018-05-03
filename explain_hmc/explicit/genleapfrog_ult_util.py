@@ -13,7 +13,7 @@ def softabs_map(lam,alpha):
     # takes vector as input
     # returns a vector
     lower_softabs_thresh = 0.001
-    upper_softabs_thresh = 10000
+    upper_softabs_thresh = 18
     out = torch.zeros(len(lam))
     for i in range(len(lam)):
         alp_lam = lam[i] * alpha
@@ -173,9 +173,6 @@ def J(lam,alpha,length):
     upper_softabs_thresh = 1000
     J = torch.zeros(length,length)
     i = 0
-
-
-
     while i < length:
         j =0
         while j <=i:
@@ -211,13 +208,17 @@ def J(lam,alpha,length):
 def D(p,Q,lam,alpha):
     # output : Diag( (Q^T * p) / lam * coth(alpha * lam ))
     # Diagonal matrix such that ith entry is (Q^T * p)_i / ( lam_i * coth(alpha * lam_i))
-    return(torch.diag(torch.mv(torch.t(Q),p)/(lam*coth_torch(alpha*lam))))
+
+    return(torch.diag(torch.mv(torch.t(Q),p)/softabs_map(lam,alpha)))
 
 def dtaudq(p,dH,Q,lam,alpha):
     N = len(p)
     Jm = J(lam,alpha,len(p))
+    #print("J {}".format(Jm))
     Dm = D(p,Q,lam,alpha)
+    #print("J {}".format(Dm))
     M = torch.mm(Q,torch.mm(Dm,torch.mm(Jm,torch.mm(Dm,torch.t(Q)))))
+    #print("M {}".format(M))
     delta = torch.zeros(N)
     for i in range(N):
         delta[i] = 0.5 * torch.trace(-torch.mm(M,dH[i,:,:]))

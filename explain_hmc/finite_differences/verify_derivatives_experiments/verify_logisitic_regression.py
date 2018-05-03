@@ -1,12 +1,16 @@
 from distributions.logistic_regression import V_logistic_regression
 import torch
 from finite_differences.finite_diff_funcs import compute_and_display_results
+import cProfile
 logistic_regression_object = V_logistic_regression()
 
 dim = logistic_regression_object.dim
 logistic_regression_object.beta.data.copy_(torch.randn(dim))
 
 
+#cProfile.run("logistic_regression_object.getdH()[2]")
+#cProfile.run("logistic_regression_object.getH()")
+#exit()
 compute_and_display_results(logistic_regression_object,10)
 
 exit()

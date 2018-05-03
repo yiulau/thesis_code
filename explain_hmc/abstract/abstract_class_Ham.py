@@ -43,6 +43,7 @@ class Hamiltonian(object):
         self.V.diagnostics = self.diagnostics
 
     def evaluate_all(self,q_point=None,p_point=None):
+        # returns (H,V,T)
         self.V.load_point(q_point)
         self.T.load_point(p_point)
         out = [0,self.V.evaluate_scalar(),self.T.evaluate_scalar()]
@@ -58,66 +59,72 @@ class Hamiltonian(object):
 
     def setup_dG_dt(self):
         if (self.metric.name == "softabs"):
-            def dG_dt(q,p,dV=None,lam=None,Q=None,dH=None):
-                if dV==None:
-                    dV, H_, dH = self.V.getdH_tensor(q)
-                    lam,Q = eigen(H_)
-                alpha = self.T.metric.msoftabsalpha
-                return (-torch.dot(q.flattened_tensor, self.V.dtaudq(p.flattened_tensor, dH, Q, lam, alpha)) + self.V.dphidq(lam, alpha, dH, Q, dV))
+
+            def dG_dt(q,p):
+                dV, H_, dH = self.V.getdH_tensor(q)
+                lam,Q = eigen(H_)
+                out = -torch.dot(q.flattened_tensor, self.T.dtaudq(p.flattened_tensor, dH, Q, lam) + self.T.dphidq(lam, dH, Q, dV))
+
+                return (out)
         elif (self.metric.name == "softabs_diag"):
-            def dG_dt(q, p,dV=None,mdiagH=None,mgraddiagH=None):
-                if dV==None:
-                    dV, mdiagH, mgraddiagH = self.V.getdH_diagonal_tensor(q)
+            def dG_dt(q, p):
+
+                dV, mdiagH, mgraddiagH = self.V.getdH_diagonal_tensor(q)
                 mlambda,_ = self.T.fcomputeMetric(mdiagH)
-                alpha = self.T.metric.msoftabsalpha
-                return (-torch.dot(q.flattened_tensor, self.V.dtaudq(p.flattened_tensor,mdiagH,mlambda,mgraddiagH)) +
-                        self.V.dphidq(mdiagH,mlambda))
-        elif (self.metric.name=="softabs_diag_outer_product" ):
-            def dG_dt(q, p,dV=None):
-                if dV==None:
-                    dV = self.V.getdV_tensor(q)
+                return (-torch.dot(q.flattened_tensor, self.T.dtaudq(p.flattened_tensor,mdiagH,mlambda,mgraddiagH)) +
+                        self.T.dphidq(mdiagH,mlambda))
+        elif (self.metric.name=="softabs_diag_outer_product"):
+            def dG_dt(q, p):
+
+                dV = self.V.getdV_tensor(q)
                 mlambda, _ = self.T.fcomputeMetric(dV)
                 mH = self.mH(dV)
-                alpha = self.T.metric.msoftabsalpha
-                return (-torch.dot(q.flattened_tensor, self.V.dtaudq(p, dV, mlambda,mH)) +
-                        self.V.dphidq(p.flattened_tensor,mlambda,dV,mH))
+                return (-torch.dot(q.flattened_tensor, self.T.dtaudq(p, dV, mlambda,mH)) +
+                        self.T.dphidq(p.flattened_tensor,mlambda,dV,mH))
         elif (self.metric.name=="softabs_outer_product" ):
-            def dG_dt(q, p,dV=None):
-                if dV==None:
-                    dV = self.V.getdV_tensor(q)
-                    mH = self.mH(dV)
-                alpha = self.T.metric.msoftabsalpha
-                return (-torch.dot(q.flattened_tensor, self.V.dtaudq(p.flattened_tensor,dV)) +
-                        self.V.dphidq(dV,mH))
-        else:
+            def dG_dt(q, p):
+                dV = self.V.getdV_tensor(q)
+                mH = self.mH(dV)
+                return (-torch.dot(q.flattened_tensor, self.T.dtaudq(p.flattened_tensor,dV)) +
+                        self.T.dphidq(dV,mH))
+        elif(self.metric.name=="dense_e" or self.metric.name=="diag_e" or self.metric.name=="unit_e"):
             def dG_dt(q,p):
-                return (2 * self.T.evaluate(p) - torch.dot(q.flattened_tensor, self.V.dq(q)))
-
+                self.T.load_point(p)
+                return (2 * self.T.evaluate_scalar() - torch.dot(q.flattened_tensor, self.V.dq(q.flattened_tensor)))
+        else:
+            raise ValueError("unknown metric name")
+        return(dG_dt)
     def setup_p_sharp(self):
-        if (self.metric == "softabs"):
-            def p_sharp(q,p,lam=None,Q=None):
+        if (self.metric.name == "softabs"):
+            def p_sharp(q,p):
+                _,H = self.V.getH_tensor(q)
+                lam,Q = eigen(H)
                 out = p.point_clone()
                 out.flattened_tensor = self.T.dtaudp(p.flattened_tensor,lam,Q)
-                out.loadfromflatten()
+                out.load_flatten()
                 return(out)
         elif(self.metric.name=="softabs_diag"):
-            def p_sharp(q,p,mlambda=None):
+            def p_sharp(q,p):
+                _,mdiagH = self.V.getH_diagonal_tensor()
+                mlambda,_ = self.T.fcomputeMetric(mdiagH)
                 out = p.point_clone()
                 out.flattened_tensor = self.T.dtaudp(p.flattened_tensor,mlambda)
-                out.loadfromflatten()
+                out.load_flatten()
                 return(out)
         elif(self.metric.name=="softabs_outer_product" or self.metric.name=="softabs_diag_outer_product"):
             def p_sharp(q,p,dV=None):
                 out = p.point_clone()
                 out.flattened_tensor = self.T.dtaudp(p.flattened_tensor,dV)
-                out.loadfromflatten()
+                out.load_flatten()
                 return(out)
 
-        else:
+        elif(self.metric.name=="dense_e" or self.metric.name=="unit_e" or self.metric.name=="diag_e"):
             def p_sharp(q,p):
                 out = p.point_clone()
                 out.flattened_tensor = self.T.dp(p.flattened_tensor)
-                out.loadfromflatten()
+                out.load_flatten()
                 return(out)
 
+        else:
+            raise ValueError("unknown metric name")
         return(p_sharp)

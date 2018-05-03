@@ -135,7 +135,7 @@ def compute_and_display_results(v_object,num_rep=10):
         fin_diff_H = finite_diff_hessian(v_object)
         time_total_H_finite += time.time() - time_temp
         time_temp = time.time()
-        autograd_H = v_object.getH().data
+        autograd_H = v_object.getH()[1].data
         time_total_H_autograd += time.time() - time_temp
 
         l2norm_diff2ndderiv = ((explicit_H - fin_diff_H) * (explicit_H - fin_diff_H)).sum()
@@ -155,7 +155,7 @@ def compute_and_display_results(v_object,num_rep=10):
         fin_diff_dH = finite_diff_dH(v_object)
         time_total_dH_finite += time.time() - time_temp
         time_temp = time.time()
-        autograd_dH = v_object.getdH()
+        autograd_dH = v_object.getdH()[2]
         time_total_dH_autograd += time.time() - time_temp
 
         l2norm_diff3rdderiv = ((explicit_dH - fin_diff_dH) * (explicit_dH - fin_diff_dH)).sum()

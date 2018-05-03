@@ -9,12 +9,24 @@ class T_softabs_e(T):
         super(T_softabs_e, self).__init__(linkedV)
 
     def evaluate_scalar(self):
-        _, H_ = self.linkedV.getH()
-        lam, Q = eigen(H_.data)
+        _, H_ = self.linkedV.getH_tensor()
+        lam, Q = eigen(H_)
+
         temp = softabs_map(lam, self.metric.msoftabsalpha)
-        inv_exp_H = torch.mm(torch.mm(Q, torch.diag(1 / temp)), torch.t(Q))
+
+        inv_exp_H = torch.mm(torch.mm(Q, torch.diag(1/temp)), torch.t(Q))
+
+        #print("inv_exp_H {}".format(inv_exp_H))
         o = 0.5 * torch.dot(self.flattened_tensor, torch.mv(inv_exp_H, self.flattened_tensor))
         temp2 = 0.5 * torch.log((temp)).sum()
+        #print("alpha {}".format(self.metric.msoftabsalpha))
+        #print("lam {}".format(lam))
+        #print("H_ {}".format(H_))
+        #print("H_2 {}".format(torch.mm(torch.mm(Q, torch.diag(temp)), torch.t(Q))))
+        #print("msoftabslambda {}".format(temp))
+        print("tau {}".format(o))
+        print("logdetmetric {}".format(temp2))
+
         output = o + temp2
         return (output)
 
@@ -32,8 +44,12 @@ class T_softabs_e(T):
         alpha = self.metric.msoftabsalpha
         N = self.dim
         Jm = J(lam, alpha, self.dim)
+        print("J {}".format(Jm))
+        print("lam {}".format(lam))
         Dm = D(p_flattened_tensor, Q, lam, alpha)
+        print("D {}".format(Dm))
         M = torch.mm(Q, torch.mm(Dm, torch.mm(Jm, torch.mm(Dm, torch.t(Q)))))
+        print("M {}".format(M))
         delta = torch.zeros(N)
         for i in range(N):
             delta[i] = 0.5 * torch.trace(-torch.mm(M, dH[i, :, :]))

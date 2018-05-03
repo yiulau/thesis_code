@@ -27,7 +27,7 @@ class T_diag_e(T):
     def dtaudq(self):
         raise ValueError("should not call this function")
 
-    def generate_momentum(self):
+    def generate_momentum(self,q):
 
         out = point(None, self)
         out.flattened_tensor.copy_(self.metric._sd_vec * torch.randn(self.dim))

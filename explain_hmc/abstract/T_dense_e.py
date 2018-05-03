@@ -11,9 +11,7 @@ class T_dense_e(T):
         output = torch.dot(Lp, Lp)
         return(output)
 
-    def dp(self,flattened_tensor):
-        out = torch.mv(self.metric._flattened_cov,flattened_tensor)
-        return(out)
+
 
     def dtaudp(self,p=None):
         if self.need_flatten:
@@ -32,7 +30,7 @@ class T_dense_e(T):
     def dtaudq(self):
         raise ValueError("should not call this function")
 
-    def generate_momentum(self):
+    def generate_momentum(self,q):
         out = point(None, self)
         out.flattened_tensor.copy_(torch.mv(self.metric._flattened_covL, torch.randn(self.dim)))
         out.load_flatten()

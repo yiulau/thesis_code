@@ -24,7 +24,7 @@ class metric(object):
             # covL * covL^T = cov
             self._flattened_covL = torch.eye(V_instance.dim,V_instance.dim)
             self._flattened_cov = torch.eye(V_instance.dim,V_instance.dim)
-        elif name=="softabs" or name=="softabs_diag" or name=="softabs_outer_product" or name=="softabs_diag_outer_product":
+        elif name=="softabs" or name=="softabs_diag" or name=="softabs_outer_product" or name=="softabs_outer_product_diag":
             if alpha==None:
                 raise ValueError("alpha needs be defined for softabs metric")
             elif alpha <= 0 or alpha==math.inf:

@@ -1,4 +1,4 @@
-from abstract_class_V_deprecated import V
+from abstract.abstract_class_V import V
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -14,7 +14,7 @@ class V_eightschool_ncp(V):
     def V_setup(self):
         y = numpy.array([28, 8, -3, 7, -1, 1, 18, 12])
         sigma = numpy.array([15, 10, 16, 11, 9, 11, 10, 18])
-        self.explicit_gradient = False
+        self.explicit_gradient = True
         self.need_higherorderderiv = True
         self.J = len(y)
         self.beta = nn.Parameter(torch.zeros(self.J+2),requires_grad=True)

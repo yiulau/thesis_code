@@ -13,30 +13,44 @@ def genleapfrog_wrap(delta,H):
         return generalized_leapfrog(q,p,ep,delta,H)
     return(inside)
 
-def generalized_leapfrog(q,p,epsilon,delta,Ham):
+def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
+
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam, Q = eigen(H_)
+
+
 
     # dphidq outputs and inputs takes flattened gradient in flattened form
     p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(lam,dH,Q,dV)
 
 
-    p.load_flatten()
 
+    p.load_flatten()
     rho = p.flattened_tensor.clone()
     pprime = p.flattened_tensor.clone()
     deltap = delta + 0.5
     count = 0
+
+
+
     while (deltap > delta) and (count < 5):
         # dtaudq returns gradient in flattened form
-        pprime = rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
+        pprime.copy_(rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
+
+        count = count + 1
+    if deltap>delta:
+        first_fi_divergent = True
+        return (q, p, True)
+    else:
+        first_fi_divergent = False
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
-        count = count + 1
 
+    #print(first_fi_divergent)
+    #print(p.flattened_tensor)
     sigma = q.point_clone()
     qprime = q.flattened_tensor.clone()
     deltaq = delta + 0.5
@@ -44,8 +58,9 @@ def generalized_leapfrog(q,p,epsilon,delta,Ham):
     _,H_ = Ham.V.getH_tensor(sigma)
     olam,oQ = eigen(H_)
     count = 0
-    while (deltaq > delta) and (count < 5):
 
+
+    while (deltaq > delta) and (count < 5):
         _,H_ = Ham.V.getH_tensor(q)
         lam,Q = eigen(H_)
         qprime = sigma.flattened_tensor + 0.5 * epsilon * Ham.T.dtaudp(p.flattened_tensor,olam,oQ) + \
@@ -54,27 +69,38 @@ def generalized_leapfrog(q,p,epsilon,delta,Ham):
         q.flattened_tensor.copy_(qprime)
         q.load_flatten()
         count = count + 1
-
-
+    if deltaq>delta:
+        second_fi_divergent = True
+        return(q,p,True)
+    else:
+        second_fi_divergent = False
+        q.flattened_tensor.copy_(qprime)
+        q.load_flatten()
+    print("H is {}".format(Ham.evaluate(q,p)))
 
 
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
+    from explicit.genleapfrog_ult_util import softabs_map
+    print(0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
 
     p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
-    p.load_flatten()
-    p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
+    print("H is {}".format(Ham.evaluate(q, p)))
     p.load_flatten()
 
-    return(q,p)
+    p.flattened_tensor -= 0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
+
+    p.load_flatten()
+
+    return(q,p,False)
 
 def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
     # input output point object
     # can take anything but should output tensor
-    dV,H_,dH = Ham.V.getdH_tensor(q)
-    lam, Q = eigen(H_)
+    dV,mdiagH,mgraddiagH = Ham.V.get_graddiagH(q)
+    mlambda,_ = Ham.T.fcomputeMetric(mdiagH)
     # dphidq outputs and inputs takes flattened gradient in flattened form
-    p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(lam,dH,Q,dV)
+    p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(dV,mdiagH,mgraddiagH,mlambda)
     p.load_flatten()
     rho = p.flattened_tensor.clone()
     pprime = p.flattened_tensor.clone()
@@ -82,7 +108,7 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
     count = 0
     while (deltap > delta) and (count < 5):
         # dtaudq returns gradient in flattened form
-        pprime = rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
+        pprime = rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,mdiagH,mlambda,mgraddiagH)
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
@@ -92,25 +118,25 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
     qprime = q.flattened_tensor.clone()
     deltaq = delta + 0.5
 
-    _,H_ = Ham.V.getH_tensor(sigma)
-    olam,oQ = eigen(H_)
+    _,mdiagH = Ham.V.getdiagH_tensor(sigma)
+    omlambda,_ = Ham.T.fcomputeMetric(mdiagH)
     count = 0
     while (deltaq > delta) and (count < 5):
-        _,H_ = Ham.V.getH_tensor(q)
-        lam,Q = eigen(H_)
-        qprime = sigma.flattened_tensor + 0.5 * epsilon * Ham.T.dtaudp(p.flattened_tensor,olam,oQ) + \
-                 0.5 * epsilon* Ham.T.dtaudp(p.flattened_tensor,lam,Q)
+        _,mdiagH = Ham.V.getdiagH_tensor(q)
+        mlambda,_ = Ham.T.fcomputeMetric(mdiagH)
+        qprime = sigma.flattened_tensor + 0.5 * epsilon * Ham.T.dtaudp(p.flattened_tensor,omlambda) + \
+                 0.5 * epsilon* Ham.T.dtaudp(p.flattened_tensor,mlambda)
         deltaq = torch.max(torch.abs(q.flattened_tensor-qprime))
         q.flattened_tensor.copy_(qprime)
         q.load_flatten()
         count = count + 1
 
-    dV,H_,dH = Ham.V.getdH_tensor(q)
-    lam,Q = eigen(H_)
+    dV, mdiagH, mgraddiagH = Ham.V.get_graddiagH(q)
+    mlambda, _ = Ham.T.fcomputeMetric(mdiagH)
 
-    p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
+    p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,mdiagH,mlambda,mgraddiagH)
     p.load_flatten()
-    p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
+    p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(dV,mdiagH,mgraddiagH,mlambda)
     p.load_flatten()
 
     return(q,p)
@@ -155,9 +181,9 @@ def generalized_leapfrog_softabs_op(q,p,epsilon,delta,Ham):
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
 
-    p.flattened_tensor -= 0.5 * epsilon * H.T.dtaudq(p.flattened_tensor,dH,Q,lam)
+    p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
     p.load_flatten()
-    p.flattened_tensor -=0.5 * epsilon * H.T.dphidq(lam,dH,Q,dV)
+    p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
     p.load_flatten()
 
     return(q,p)
@@ -168,7 +194,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam, Q = eigen(H_)
     # dphidq outputs and inputs takes flattened gradient in flattened form
-    p.flattened_tensor -= epsilon * 0.5 * H.T.dphidq(lam,dH,Q,dV)
+    p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(lam,dH,Q,dV)
     p.load_flatten()
     rho = p.flattened_tensor.clone()
     pprime = p.flattened_tensor.clone()
@@ -176,7 +202,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     count = 0
     while (deltap > delta) and (count < 5):
         # dtaudq returns gradient in flattened form
-        pprime = rho - epsilon * 0.5 * H.T.dtaudq(p.flattened_tensor,dH,Q,lam)
+        pprime = rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
@@ -220,8 +246,18 @@ def rmhmc_step(initq,epsilon,L,delta,Ham,careful=True):
 
     current_H = Ham.evaluate(q,p)
 
+    if Ham.T.metric.name=="softabs_e":
+        integrator = generalized_leapfrog
+    elif Ham.T.metric.name=="softabs_diag":
+        integrator = generalized_leapfrog_softabsdiag
+    elif Ham.T.metric.name=="softabs_outer_product":
+        integrator = generalized_leapfrog_softabs_op
+    elif Ham.T.metric.name=="softabs_outer_product_diag":
+        integrator = generalized_leapfrog_softabs_op_diag
+    else:
+        raise ValueError("not one of available metrics")
     for i in range(L):
-        out = generalized_leapfrog(q,p,epsilon,delta,Ham)
+        out = integrator(q,p,epsilon,delta,Ham)
         q = out[0]
         p = out[1]
         if careful:

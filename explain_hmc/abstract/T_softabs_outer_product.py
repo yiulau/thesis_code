@@ -4,9 +4,9 @@ from abstract.abstract_class_point import point
 
 
 class T_softabs_outer_product(T):
-    def __init__(self):
-        super(T_softabs_outer_product, self).__init__()
-        return ()
+    def __init__(self,metric,linkedV):
+        self.metric = metric
+        super(T_softabs_outer_product, self).__init__(linkedV)
 
     def evaluate_float(self,p=None,q=None,dV=None):
         gg = torch.dot(dV, dV)
@@ -53,11 +53,14 @@ class T_softabs_outer_product(T):
 
         return (out)
 
-    def generate_momentum(self,lam=None,Q=None,dV=None):
-        msoftabsalpha = self.metric.alpha
+    def generate_momentum(self,q):
+        dV = self.linkedV.getdV_tensor(q)
+        msoftabsalpha = self.metric.msoftabsalpha
         gg = torch.dot(dV, dV)
         agg = msoftabsalpha * gg
-
+        #print(gg)
+        #print(agg)
+        exit()
         dV = dV * math.sqrt((numpy.cosh(agg) - 1) / gg)
         mH = torch.zeros(len(dV), len(dV))
         for i in range(len(dV)):
@@ -76,6 +79,8 @@ class T_softabs_outer_product(T):
                 mH[i, j] = s * vprime + c * Lprime
 
         mH = mH * math.sqrt(gg / numpy.sinh(agg))
+        #print(mH)
+        exit()
         mHL = torch.potrf(mH,upper=False)
         out = point(None, self)
         out.flattened_tensor.copy_(torch.mv(mHL, torch.randn(len(dV))))
