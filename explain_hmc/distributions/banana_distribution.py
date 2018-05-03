@@ -12,7 +12,7 @@ class V_banana(V):
         self.n = 100
         y_np = numpy.random.randn(self.n)*2.+1.
         self.y = Variable(torch.from_numpy(y_np),requires_grad=False).type(precision_type)
-        self.explicit_gradient = False
+        self.explicit_gradient = True
         self.need_higherorderderiv = True
         self.beta = nn.Parameter(torch.zeros(2),requires_grad=True)
         #self.n = n

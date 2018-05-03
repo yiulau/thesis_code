@@ -12,7 +12,7 @@ class V_funnel(V):
         self.n = 10
         self.explicit_gradient = True
         self.need_higherorderderiv = True
-        self.beta = nn.Parameter(torch.zeros(10),requires_grad=True)
+        self.beta = nn.Parameter(torch.zeros(self.n),requires_grad=True)
         #self.n = n
         # beta[n-1] = y ,
         # beta[:(n-1)] = x

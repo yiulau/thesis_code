@@ -35,15 +35,19 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
 
 
 
-    while (deltap > delta) and (count < 5):
+    while (deltap > delta) and (count < 10):
         # dtaudq returns gradient in flattened form
         pprime.copy_(rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
 
         count = count + 1
     if deltap>delta:
-        first_fi_divergent = True
-        return (q, p, True)
+        first_fi_divergent = False
+        print("pprime {}".format(pprime))
+        print("deltap {}".format(deltap))
+        print("first fi div")
+        print(count)
+        #return (q, p, True)
     else:
         first_fi_divergent = False
         p.flattened_tensor.copy_(pprime)
@@ -60,7 +64,7 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     count = 0
 
 
-    while (deltaq > delta) and (count < 5):
+    while (deltaq > delta) and (count < 10):
         _,H_ = Ham.V.getH_tensor(q)
         lam,Q = eigen(H_)
         qprime = sigma.flattened_tensor + 0.5 * epsilon * Ham.T.dtaudp(p.flattened_tensor,olam,oQ) + \
@@ -70,8 +74,9 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
         q.load_flatten()
         count = count + 1
     if deltaq>delta:
-        second_fi_divergent = True
-        return(q,p,True)
+        second_fi_divergent = False
+        print("second fi div")
+        #return(q,p,True)
     else:
         second_fi_divergent = False
         q.flattened_tensor.copy_(qprime)
@@ -91,7 +96,7 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     p.flattened_tensor -= 0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
 
     p.load_flatten()
-
+    #print("yes")
     return(q,p,False)
 
 def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
@@ -200,7 +205,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     pprime = p.flattened_tensor.clone()
     deltap = delta + 0.5
     count = 0
-    while (deltap > delta) and (count < 5):
+    while (deltap > delta) and (count < 10):
         # dtaudq returns gradient in flattened form
         pprime = rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
@@ -215,7 +220,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     _,H_ = Ham.V.getH_tensor(sigma)
     olam,oQ = eigen(H_)
     count = 0
-    while (deltaq > delta) and (count < 5):
+    while (deltaq > delta) and (count < 10):
         _,H_ = Ham.V.getH_tensor(q)
         lam,Q = eigen(H_)
         qprime = sigma.flattened_tensor + 0.5 * epsilon * Ham.T.dtaudp(p.flattened_tensor,olam,oQ) + \
@@ -234,7 +239,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     p.load_flatten()
 
     return(q,p)
-def rmhmc_step(initq,epsilon,L,delta,Ham,careful=True):
+def rmhmc_step(initq,epsilon,L,Ham,careful=True):
     #q = Variable(initq.data.clone(), requires_grad=True)
 
     Ham.diagnostics = time_diagnositcs()
@@ -246,7 +251,7 @@ def rmhmc_step(initq,epsilon,L,delta,Ham,careful=True):
 
     current_H = Ham.evaluate(q,p)
 
-    if Ham.T.metric.name=="softabs_e":
+    if Ham.T.metric.name=="softabs":
         integrator = generalized_leapfrog
     elif Ham.T.metric.name=="softabs_diag":
         integrator = generalized_leapfrog_softabsdiag
@@ -257,7 +262,8 @@ def rmhmc_step(initq,epsilon,L,delta,Ham,careful=True):
     else:
         raise ValueError("not one of available metrics")
     for i in range(L):
-        out = integrator(q,p,epsilon,delta,Ham)
+        out = integrator(q,p,epsilon,Ham)
+        print("yes")
         q = out[0]
         p = out[1]
         if careful:
