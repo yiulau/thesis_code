@@ -11,6 +11,7 @@ from abstract.abstract_genleapfrog_ult_util import generalized_leapfrog,generali
 from abstract.abstract_leapfrog_ult_util import abstract_leapfrog_ult
 from abstract.abstract_nuts_util import abstract_NUTS
 import torch
+from post_processing.plot_energy_oscillation import plot_V_T
 # need to plot the two functions on the same graph
 # need to save the graph
 
@@ -80,32 +81,6 @@ print(V_list)
 print(T_list)
 print(H_list)
 #exit()
-def plot_V_T(V_vec,T_vec,epsilon):
-    # V_vec and T_vec comes from one long leapfrog/ genleapfrog trajectory. No acceptance or anything
-
-    H_vec = V_vec + T_vec
-    L = len(V_vec)
-    t_vec = [0]*L
-    for n in range(L):
-        t = epsilon * n
-        t_vec[n] = t
-
-    x = t_vec
-
-    fig = plt.figure()
-    fig.show()
-    ax = fig.add_subplot(111)
-    ax.plot(t_vec, V_vec, c='k', ls='-', label='V')
-    ax.plot(t_vec, T_vec, c='k', marker="+", ls=':', label='T')
-    ax.plot(x, H_vec, c='g', marker=(8, 2, 0), ls='--', label='H')
-    plt.xlabel('t')
-    plt.ylabel('energy')
-    plt.title('ep ={}, L ={}'.format(epsilon,len(H_list)))
-    plt.legend(loc=2)
-    plt.draw()
-    plt.show()
-    plt.savefig('foo.png')
-    return()
 
 
 #V_vec = numpy.random.randn(200)
@@ -115,9 +90,3 @@ V_vec = numpy.array(V_list[100:])
 T_vec = numpy.array(T_list[100:])
 
 plot_V_T(V_vec,T_vec,epsilon)
-
-
-
-
-
-

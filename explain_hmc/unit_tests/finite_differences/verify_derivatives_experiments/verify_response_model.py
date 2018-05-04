@@ -1,7 +1,6 @@
 from distributions.response_model import V_response_model
 import torch
-from finite_differences.finite_diff_funcs import compute_and_display_results
-from finite_differences.finite_diff_funcs import compute_and_display_results
+from unit_tests.finite_differences.finite_diff_funcs import compute_and_display_results
 response_model_object = V_response_model()
 
 dim = response_model_object.dim

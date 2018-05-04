@@ -1,6 +1,6 @@
 import torch, numpy, math
 from explicit.genleapfrog_ult_util import eigen
-from time_diagnostics import time_diagnositcs
+from general_util.time_diagnostics import time_diagnositcs
 
 # move to abstract_class_V
 # dphidq = dVdq + log(det(Sigma(q)))
@@ -86,7 +86,6 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
 
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
-    from explicit.genleapfrog_ult_util import softabs_map
     print(0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
 
     p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
@@ -99,7 +98,7 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     #print("yes")
     return(q,p,False)
 
-def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
+def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
     dV,mdiagH,mgraddiagH = Ham.V.get_graddiagH(q)
@@ -146,7 +145,7 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,delta,Ham):
 
     return(q,p)
 
-def generalized_leapfrog_softabs_op(q,p,epsilon,delta,Ham):
+def generalized_leapfrog_softabs_op(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
     dV,H_,dH = Ham.V.getdH_tensor(q)
@@ -193,7 +192,7 @@ def generalized_leapfrog_softabs_op(q,p,epsilon,delta,Ham):
 
     return(q,p)
 
-def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
+def generalized_leapfrog_softabs_op_diag(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
     dV,H_,dH = Ham.V.getdH_tensor(q)
@@ -239,58 +238,50 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,delta,Ham):
     p.load_flatten()
 
     return(q,p)
-def rmhmc_step(initq,epsilon,L,Ham,careful=True):
-    #q = Variable(initq.data.clone(), requires_grad=True)
+def rmhmc_step(init_q,epsilon,L,Ham,careful=True):
+
 
     Ham.diagnostics = time_diagnositcs()
-    q = initq.point_clone()
-    #_, H_ = Ham.V.getH_tensor(q)
-    #lam, Q = eigen(H_)
-    #p = Variable(generate_momentum(alpha,lam,Q))
-    p = Ham.T.generate_momentum(q)
+    q = init_q.point_clone()
 
+    init_p = Ham.T.generate_momentum(q)
+    p = init_p.point_clone()
     current_H = Ham.evaluate(q,p)
+    num_transitions = L
+    divergent = False
 
-    if Ham.T.metric.name=="softabs":
-        integrator = generalized_leapfrog
-    elif Ham.T.metric.name=="softabs_diag":
-        integrator = generalized_leapfrog_softabsdiag
-    elif Ham.T.metric.name=="softabs_outer_product":
-        integrator = generalized_leapfrog_softabs_op
-    elif Ham.T.metric.name=="softabs_outer_product_diag":
-        integrator = generalized_leapfrog_softabs_op_diag
-    else:
-        raise ValueError("not one of available metrics")
     for i in range(L):
-        out = integrator(q,p,epsilon,Ham)
-        print("yes")
+        out = Ham.integrator(q,p,epsilon,Ham)
         q = out[0]
         p = out[1]
         if careful:
             temp_H = Ham.evaluate(q, p)
             if (abs(temp_H - current_H) > 1000):
-                return_q = initq
+                return_q = init_q
+                return_p = None
                 return_H = current_H
                 accept_rate = 0
                 accepted = False
                 divergent = True
-                return (return_q, return_H, accepted, accept_rate, divergent,i)
-        #q.flattened_tensor.copy_(out[0])
-        #p.flattened_tensor.copy_(out[1])
-        #q.load_flatten()
-        #p.load_flatten()
-    proposed_H = Ham.evaluate(q,p)
-    u = numpy.random.rand(1)
-    diff = current_H - proposed_H
-    if (abs(diff) > 1000):
-        divergent = True
-    else:
-        divergent = False
-    accept_rate = math.exp(min(0,diff))
+                num_transitions = i
+                break
+    if not divergent:
+        proposed_H = Ham.evaluate(q,p)
+        u = numpy.random.rand(1)
+
+        if (abs(current_H - proposed_H) > 1000):
+            divergent = True
+        else:
+            divergent = False
+    accept_rate = math.exp(min(0,current_H - proposed_H))
     if u < accept_rate:
         next_q = q
+        proposed_p = p
+        next_H = proposed_H
         accepted = True
     else:
-        next_q = initq
+        next_q = init_q
+        proposed_p = None
         accepted = False
-    return(next_q,proposed_H,accepted,accept_rate,divergent)
+        next_H = current_H
+    return(next_q,proposed_p,init_p,next_H,accepted,accept_rate,divergent,num_transitions)

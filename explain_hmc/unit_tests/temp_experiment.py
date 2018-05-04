@@ -22,11 +22,15 @@ from explicit.genleapfrog_ult_util import softabs_map
 #seed=1
 #torch.manual_seed(seed)
 #numpy.random.seed(seed)
-#vo = V_logistic_regression()
-vo = V_funnel()
-metrico = metric("softabs",vo,alpha=1e6)
+vo = V_logistic_regression()
 
+#vo = V_funnel()
+#metrico = metric("softabs",vo,alpha=1e6)
+#metrico = metric("softabs_diag",vo,alpha=1e6)
+#metrico = metric("softabs_outer_product",vo,alpha=1e6)
 #metrico = metric("diag_e",vo)
+#metrico = metric("dense_e",vo)
+metrico = metric("unit_e",vo)
 from abstract.T_unit_e import T_unit_e
 #T_unit_e(metrico,vo)
 #exit()
@@ -37,20 +41,20 @@ epsilon = 0.1
 qpoint_obj = Ho.V.q_point
 q = qpoint_obj
 #out = abstract_NUTS(q,epsilon,Ho,abstract_leapfrog_ult,5)
-#out = abstract_GNUTS(q,epsilon,Ho,generalized_leapfrog,5)
+#out = abstract_GNUTS(q,epsilon,Ho,5)
 #out = abstract_GNUTS(q,epsilon,Ho,abstract_leapfrog_ult,5)
 #out = abstract_NUTS_xhmc(q,epsilon,Ho,abstract_leapfrog_ult,5,0.1)
 #out = abstract_NUTS_xhmc(q,epsilon,Ho,generalized_leapfrog,5,0.1)
-#out = abstract_HMC_alt_ult(epsilon=0.01,L=10,current_q=qpoint_obj,leapfrog=abstract_leapfrog_ult,Ham=Ho)
-out = rmhmc_step(qpoint_obj,0.2,20,Ho)
-#out = abstract_HMC_alt_windowed(epsilon=0.001,L=10,current_q=qpoint_obj,leapfrog_window=abstract_leapfrog_window,Ham=Ho)
+out = abstract_HMC_alt_ult(epsilon=0.01,L=10,init_q=qpoint_obj,Ham=Ho)
+#out = rmhmc_step(qpoint_obj,0.01,10,Ho)
+#out = abstract_HMC_alt_windowed(epsilon=0.01,L=10,current_q=qpoint_obj,leapfrog_window=abstract_leapfrog_window,Ham=Ho)
 
 q_out = out[0]
 #p_out = out[1]
 print(q_out.flattened_tensor)
 #print(p_out.flattened_tensor)
 #print(out[2].flattened_tensor)
-print(out[1:])
+print(out[3:])
 exit()
 #vo.beta.data = torch.randn(2)
 print(vo.list_var[0].data)

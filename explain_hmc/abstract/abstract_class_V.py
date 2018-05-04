@@ -1,10 +1,9 @@
-import torch,abc
+import torch
 from torch.autograd import Variable, grad
 import torch.nn as nn
 import numpy
-from pytorch_util import get_list_stats
+from general_util.pytorch_util import get_list_stats
 from abstract.abstract_class_point import point
-from explicit.genleapfrog_ult_util import eigen
 
 
 # if need to define explicit gradient do it
@@ -46,13 +45,14 @@ class V(nn.Module):
         else:
             self.load_explicit_gradient()
     def getdV(self,q=None):
-        #
         # return list of pytorch variables containing the gradient
+        if not q is None:
+            self.load_point(q)
         if not self.need_flatten:
             g = grad(self.forward(),self.list_var,create_graph=True)[0]
         else:
             g = grad(self.forward(), self.list_var, create_graph=True)
-        #self.load_gradient(g)
+        self.load_gradient(g)
         if not self.diagnostics is None:
             self.diagnostics.add_num_grad(1)
         return(g)
@@ -61,6 +61,8 @@ class V(nn.Module):
         # return list of pytorch variables containing the gradient
         #if not q.V is self:
         #    raise ValueError("not the same V function object")
+        if not q is None:
+            self.load_point(q)
         if self.explicit_gradient:
             self.gradient_tensor.copy_(self.load_explicit_gradient())
         else:
@@ -71,6 +73,8 @@ class V(nn.Module):
         return(self.gradient_tensor)
 
     def getH(self,q=None):
+        if not q is None:
+            self.load_point(q)
         if not self.need_flatten:
             g = self.getdV()
             H = Variable(torch.zeros(self.dim, self.dim))
@@ -91,6 +95,8 @@ class V(nn.Module):
         return (g,H)
     # reimplement if need to get exact
     def getH_tensor(self,q=None):
+        if not q is None:
+            self.load_point(q)
         if self.explicit_gradient:
             self.gradient_tensor.copy_(self.load_explicit_gradient())
             self.Hessian_tensor.copy_(self.load_explicit_H())
@@ -113,17 +119,24 @@ class V(nn.Module):
             self.load_gradient(g)
             self.load_Hessian(H)
 
-
         return (self.gradient_tensor,self.Hessian_tensor)
     def getdiagH_tensor(self,q=None):
-        assert self.explicit_gradient == True
+        if not q is None:
+            self.load_point(q)
+
         #assert self.metric.name =="softabs_diag"
-        self.gradient_tensor.copy_(self.load_explicit_gradient())
-        self.diagH_tensor.copy_(self.load_explicit_diagH())
+        if not self.explicit_gradient:
+            _,H = self.getH_tensor()
+            self.diagH_tensor.copy_(torch.diag(H))
+        else:
+            self.gradient_tensor.copy_(self.load_gradient())
+            self.gradient_tensor.copy_(self.load_mdiagH())
         return(self.gradient_tensor,self.diagH_tensor)
 
 
-    def getdH(self):
+    def getdH(self,q=None):
+        if not q is None:
+            self.load_point(q)
         if not self.need_flatten:
             g, H = self.getH()
             dH = torch.zeros(self.dim, self.dim, self.dim)
@@ -172,7 +185,19 @@ class V(nn.Module):
 
     def get_graddiagH(self,q=None):
         #returns (dV,mdiagH,mgraddiagH)
+        if not q is None:
+            self.load_point(q)
         assert self.explicit_gradient == True
+        if not self.explicit_gradient:
+            _,H,dH = self.getdH_tensor()
+            self.diagH_tensor.copy_(torch.diag(H))
+            out = torch.zeros(self.dim, self.dim)
+            for i in range(self.dim):
+                out[i, :] = torch.diag(dH[i, :, :])
+            self.graddiagH_tensor.copy_(out)
+        else:
+            self.gradient_tensor.copy_(self.load_gradient())
+            self.gradient_tensor.copy_(self.load_mdiagH())
         #assert self.metric.name == "softabs_diag"
         self.gradient_tensor.copy_(self.load_explicit_gradient())
         self.diagH_tensor.copy_(self.load_explicit_diagH())
@@ -196,7 +221,7 @@ class V(nn.Module):
         return(var1_shape_container)
     def load_gradient(self,list_g):
         if not self.need_flatten:
-            self.gradient_tensor.copy_(list_g.data)
+            self.gradient_tensor.copy_(list_g[0].data)
         else:
             cur = 0
             for i in range(self.num_var):
@@ -257,26 +282,28 @@ class V(nn.Module):
 
 
         return()
-    #def flatten_to_tensor(self,obj,shape):
-    #    store = torch.zeros(shape)
-#
- #       if len(shape)==2:
-  #          obj = numpy.reshape(obj, [shape[0]])
-   #         for i in range(shape[0]):
-    #            #print(obj[i])
+    def flatten_to_tensor(self,obj,shape):
+        # take entry in the abstract block Hessian or abstract block dH and return a block in the
+        # flattened Hessian or dH
+        store = torch.zeros(shape)
+
+        if len(shape)==2:
+            obj = numpy.reshape(obj, [shape[0]])
+            for i in range(shape[0]):
+                #print(obj[i])
                 #exit()
-       #         store[i,:]= obj[i].data.view(-1)
-     #   elif len(shape)==3:
+                store[i,:]= obj[i].data.view(-1)
+        elif len(shape)==3:
       #      print("yes")
-        #    obj = numpy.reshape(obj,[shape[0]])
-         #   for i in range(shape[0]):
-          #      obj[i] = numpy.reshape(obj[i],[shape[1]])
-     #       for i in range(shape[0]):
-     #           for j in range(shape[1]):
-     #               store[i,j,:] = obj[i][j].data.view(-1)
-      #  else:
-      #      raise ValueError("")
-      #  return (store)
+            obj = numpy.reshape(obj,[shape[0]])
+            for i in range(shape[0]):
+                obj[i] = numpy.reshape(obj[i],[shape[1]])
+            for i in range(shape[0]):
+                for j in range(shape[1]):
+                    store[i,j,:] = obj[i][j].data.view(-1)
+        else:
+            raise ValueError("")
+        return (store)
 
     def load_flattened_tensor_to_param(self,flattened_tensor=None):
         cur = 0

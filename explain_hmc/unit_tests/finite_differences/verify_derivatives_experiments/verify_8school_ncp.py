@@ -1,7 +1,8 @@
 from distributions.eightschool_ncp import V_eightschool_ncp
-from finite_differences.finite_diff_funcs import finite_diff_grad,finite_diff_hessian,finite_diff_dH,compute_and_display_results
+from unit_tests.finite_differences.finite_diff_funcs import finite_diff_grad,finite_diff_hessian,finite_diff_dH,compute_and_display_results
 
-import torch,numpy
+import torch
+
 eightschool_ncp_object = V_eightschool_ncp()
 
 

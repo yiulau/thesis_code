@@ -1,6 +1,6 @@
 from distributions.eightschool_cp import V_eightschool_cp
 import torch
-from finite_differences.finite_diff_funcs import compute_and_display_results
+from unit_tests.finite_differences.finite_diff_funcs import compute_and_display_results
 eightschool_cp_object = V_eightschool_cp()
 
 
@@ -25,7 +25,7 @@ cur_beta = eightschool_cp_object.beta.data.clone()
 
 #print(explicit_grad)
 
-from finite_differences.finite_diff_funcs import finite_1stderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_1stderiv
 def finite_diff_grad():
     cur_beta = eightschool_cp_object.beta.data.clone()
     out = torch.zeros(10)
@@ -68,7 +68,7 @@ def finite_diff_grad():
 #print(explicit_hessian)
 # finite difference hessian
 
-from finite_differences.finite_diff_funcs import finite_2ndderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_2ndderiv
 def finite_diff_hessian():
     out = torch.zeros(10,10)
     for i in range(10):
@@ -116,7 +116,7 @@ import time
 #print(explicit_dH)
 
 # finite difference dH
-from finite_differences.finite_diff_funcs import finite_3rdderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_3rdderiv
 def finite_diff_dH():
     out = torch.zeros(10,10,10)
     for i in range(10):

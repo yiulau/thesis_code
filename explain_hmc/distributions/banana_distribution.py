@@ -64,3 +64,14 @@ class V_banana(V):
         out[1,1,0] = out[1,0,1]
         out[1,1,1] = 12*self.n*theta[1]/(self.var_y*self.var_y)
         return(out)
+
+    def load_explicit_diagH(self):
+        out = self.load_explicit_H()
+        return (torch.diag(out))
+    def load_explicit_graddiagH(self):
+        temp = self.load_explicit_dH()
+        out = torch.zeros(self.dim,self.dim)
+        for i in range(self.dim):
+            out[i,:] = torch.diag(temp[i,:,:])
+        #out = out.t()
+        return(out)

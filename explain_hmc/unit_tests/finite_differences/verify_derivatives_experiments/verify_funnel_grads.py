@@ -1,6 +1,6 @@
 from distributions.funnel_cp import V_funnel
 import torch
-from finite_differences.finite_diff_funcs import compute_and_display_results
+from unit_tests.finite_differences.finite_diff_funcs import compute_and_display_results
 funnel_object = V_funnel()
 
 funnel_object.beta.data.copy_(torch.randn(10))
@@ -22,7 +22,7 @@ explicit_grad = funnel_object.load_explicit_gradient()
 
 
 #print(explicit_grad)
-from finite_differences.finite_diff_funcs import finite_1stderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_1stderiv
 def finite_diff_grad():
     cur_beta = funnel_object.beta.data.clone()
     out = torch.zeros(10)
@@ -63,7 +63,7 @@ explicit_hessian = funnel_object.load_explicit_H()
 #print(explicit_hessian)
 # finite difference hessian
 
-from finite_differences.finite_diff_funcs import finite_2ndderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_2ndderiv
 def finite_diff_hessian():
     out = torch.zeros(10,10)
     for i in range(10):
@@ -108,7 +108,7 @@ explicit_dH = funnel_object.load_explicit_dH()
 #print(explicit_dH)
 
 # finite difference dH
-from finite_differences.finite_diff_funcs import finite_3rdderiv
+from unit_tests.finite_differences.finite_diff_funcs import finite_3rdderiv
 def finite_diff_dH():
     out = torch.zeros(10,10,10)
     for i in range(10):

@@ -59,9 +59,7 @@ class V_logistic_regression(V):
 
         return(out)
 
-    def load_explicit_diagH(self):
-        out = self.load_explicit_H()
-        return(torch.diag(out))
+
     def load_explicit_dH(self):
         # write down explicit 3 rd derivatives
         out = torch.zeros(self.dim,self.dim,self.dim)
@@ -75,6 +73,9 @@ class V_logistic_regression(V):
 
         return(out)
 
+    def load_explicit_diagH(self):
+        out = self.load_explicit_H()
+        return (torch.diag(out))
     def load_explicit_graddiagH(self):
         temp = self.load_explicit_dH()
         out = torch.zeros(self.dim,self.dim)

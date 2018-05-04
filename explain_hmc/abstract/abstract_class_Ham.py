@@ -1,4 +1,3 @@
-import torch
 from abstract.T_unit_e import T_unit_e
 from abstract.T_dense_e import T_dense_e
 from abstract.T_diag_e import T_diag_e
@@ -6,9 +5,8 @@ from abstract.T_softabs import T_softabs_e
 from abstract.T_softabs_diag import T_softabs_diag_e
 from abstract.T_softabs_diag_outer_product import T_softabs_diag_outer_product_e
 from abstract.T_softabs_outer_product import T_softabs_outer_product
-from time_diagnostics import time_diagnositcs
-from explicit.genleapfrog_ult_util import eigen
-
+from abstract.abstract_genleapfrog_ult_util import *
+from abstract.abstract_leapfrog_ult_util import abstract_leapfrog_ult
 class Hamiltonian(object):
     # hamiltonian function
     def __init__(self,V,metric):
@@ -16,31 +14,34 @@ class Hamiltonian(object):
         self.metric = metric
         if self.metric.name=="unit_e":
             obj = T_unit_e(metric,self.V)
+            self.integrator = abstract_leapfrog_ult
 
         elif self.metric.name=="diag_e":
             obj = T_diag_e(metric,self.V)
-
+            self.integrator = abstract_leapfrog_ult
         elif self.metric.name=="dense_e":
             obj = T_dense_e(metric,self.V)
-
+            self.integrator = abstract_leapfrog_ult
         elif self.metric.name=="softabs":
             obj = T_softabs_e(metric,self.V)
-
+            self.integrator = generalized_leapfrog
         elif self.metric.name=="softabs_diag":
             obj = T_softabs_diag_e(metric,self.V)
-
+            self.integrator = generalized_leapfrog_softabsdiag
         elif self.metric.name=="softabs_outer_product":
             obj = T_softabs_outer_product(metric,self.V)
-
+            self.integrator = generalized_leapfrog_softabs_op
         elif self.metric.name=="softabs_diag_outer_product":
             obj = T_softabs_diag_outer_product_e(metric,self.V)
+            self.integrator = generalized_leapfrog_softabs_op_diag
 
 
         self.T = obj
         self.dG_dt = self.setup_dG_dt()
-        self.p_sharp = self.setup_p_sharp()
+        self.p_sharp_fun = self.setup_p_sharp()
         self.diagnostics = time_diagnositcs()
         self.V.diagnostics = self.diagnostics
+
 
     def evaluate_all(self,q_point=None,p_point=None):
         # returns (H,V,T)
@@ -105,7 +106,7 @@ class Hamiltonian(object):
                 return(out)
         elif(self.metric.name=="softabs_diag"):
             def p_sharp(q,p):
-                _,mdiagH = self.V.getH_diagonal_tensor()
+                _,mdiagH = self.V.getdiagH_tensor()
                 mlambda,_ = self.T.fcomputeMetric(mdiagH)
                 out = p.point_clone()
                 out.flattened_tensor = self.T.dtaudp(p.flattened_tensor,mlambda)

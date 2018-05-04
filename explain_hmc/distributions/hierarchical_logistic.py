@@ -1,4 +1,4 @@
-from abstract_class_V_deprecated import V
+from abstract.abstract_class_V import V
 import torch,numpy
 import torch.nn as nn
 from torch.autograd import Variable
@@ -96,4 +96,15 @@ class V_hierarchical_logistic(V):
         out[self.dim - 1,  self.dim - 1,:(self.dim - 1)] = 4*beta/(sigma*sigma)
         out[self.dim-1,self.dim-1,self.dim-1] = -4* torch.dot(beta,beta)/(sigma*sigma) + sigma
 
+        return(out)
+
+    def load_explicit_diagH(self):
+        out = self.load_explicit_H()
+        return (torch.diag(out))
+    def load_explicit_graddiagH(self):
+        temp = self.load_explicit_dH()
+        out = torch.zeros(self.dim,self.dim)
+        for i in range(self.dim):
+            out[i,:] = torch.diag(temp[i,:,:])
+        #out = out.t()
         return(out)

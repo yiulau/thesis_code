@@ -1,9 +1,9 @@
-from torch.autograd import Variable
 import torch, numpy, math
 from explicit.general_util import logsumexp, stable_sum
-from time_diagnostics import time_diagnositcs
+from general_util.time_diagnostics import time_diagnositcs
 
-def abstract_NUTS(q_init,epsilon,Ham,leapfrog,max_tdepth):
+
+def abstract_NUTS(q_init,epsilon,Ham,max_tdepth):
     # input and output are point objects
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
@@ -17,19 +17,22 @@ def abstract_NUTS(q_init,epsilon,Ham,leapfrog,max_tdepth):
     q_prop = q_init.point_clone()
     log_w = -Ham.evaluate(q_init,p_init)
     H_0 = -log_w
+    accepted = False
+    divergent = False
     s = True
     while s:
         v = numpy.random.choice([-1,1])
         if v < 0:
-            q_left, p_left, _, _, q_prime, p_prime,s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q_left, p_left, -1, j, epsilon, leapfrog, Ham,H_0
+            q_left, p_left, _, _, q_prime, p_prime,s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q_left, p_left, -1, j, epsilon, Ham,H_0
                                                                             )
         else:
-            _, _, q_right, p_right, q_prime, p_prime, s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q_right, p_right, 1, j, epsilon, leapfrog, Ham,H_0
+            _, _, q_right, p_right, q_prime, p_prime, s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q_right, p_right, 1, j, epsilon, Ham,H_0
                                                                               )
         if s_prime:
             accept_rate = math.exp(min(0,(log_w_prime-log_w)))
             u = numpy.random.rand(1)
             if u < accept_rate:
+                accepted = accepted or True
                 q_prop = q_prime.point_clone()
                 p_prop = p_prime.point_clone()
 
@@ -39,51 +42,62 @@ def abstract_NUTS(q_init,epsilon,Ham,leapfrog,max_tdepth):
         s = s and (j<max_tdepth)
         num_div += num_div_prime
         Ham.diagnostics.update_time()
-    return(q_prop,p_prop,p_init,j,num_div)
-def abstract_GNUTS(q_init,epsilon,Ham,leapfrog,max_tdepth):
+    if num_div >0:
+        divergent = True
+        p_prop = None
+
+    return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
+def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth):
     # sum_p should be a tensor instead of variable
-    p_sharp_fun = Ham.p_sharp
+
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
     q_left = q_init.point_clone()
     q_right = q_init.point_clone()
     p_left = p_init.point_clone()
     p_right = p_init.point_clone()
-    p_sleft = p_sharp_fun(q_init, p_init).point_clone()
-    p_sright = p_sharp_fun(q_init, p_init).point_clone()
+    p_sleft = Ham.p_sharp_fun(q_init, p_init).point_clone()
+    p_sright = Ham.p_sharp_fun(q_init, p_init).point_clone()
     j = 0
     num_div = 0
     q_prop = q_init.point_clone()
     log_w = -Ham.evaluate(q_init,p_init)
     H_0 = -log_w
+    accepted = False
+    divergent = False
     sum_p = p_init.flattened_tensor.clone()
     s = True
+
     while s:
         v = numpy.random.choice([-1,1])
         if v < 0:
-            q_left, p_left, _, _, q_prime, p_prime,s_prime, log_w_prime,sum_dp,num_div_prime = abstract_BuildTree_gnuts(q_left, p_left, -1, j, epsilon, leapfrog, Ham,
-                                                                            p_sharp_fun,H_0)
+            q_left, p_left, _, _, q_prime, p_prime,s_prime, log_w_prime,sum_dp,num_div_prime = abstract_BuildTree_gnuts(q_left, p_left, -1, j, epsilon, Ham,
+                                                                            H_0)
         else:
-            _, _, q_right, p_right, q_prime, p_prime,s_prime, log_w_prime, sum_dp,num_div_prime = abstract_BuildTree_gnuts(q_right, p_right, 1, j, epsilon, leapfrog, Ham,
-                                                                              p_sharp_fun,H_0)
+            _, _, q_right, p_right, q_prime, p_prime,s_prime, log_w_prime, sum_dp,num_div_prime = abstract_BuildTree_gnuts(q_right, p_right, 1, j, epsilon, Ham,
+                                                                              H_0)
         if s_prime:
             accept_rate = math.exp(min(0,(log_w_prime-log_w)))
             u = numpy.random.rand(1)
             if u < accept_rate:
+                accepted = accepted or True
                 q_prop = q_prime.point_clone()
                 p_prop = p_prime.point_clone()
         log_w = logsumexp(log_w,log_w_prime)
         sum_p += sum_dp
-        p_sleft = p_sharp_fun(q_left, p_left)
-        p_sright = p_sharp_fun(q_right, p_right)
+        p_sleft = Ham.p_sharp_fun(q_left, p_left)
+        p_sright = Ham.p_sharp_fun(q_right, p_right)
         s = s_prime and abstract_gen_NUTS_criterion(p_sleft,p_sright,sum_p)
         j = j + 1
         s = s and (j<max_tdepth)
         num_div +=num_div_prime
     Ham.diagnostics.update_time()
-    return(q_prop,p_prop,p_init,j,num_div)
-def abstract_NUTS_xhmc(q_init,epsilon,Ham,leapfrog,max_tdepth,xhmc_delta):
-    dG_dt = Ham.dG_dt
+    if num_div > 0 :
+        divergent = True
+        p_prop = None
+    return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
+def abstract_NUTS_xhmc(q_init,epsilon,Ham,max_tdepth,xhmc_delta):
+
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
     q_left = q_init.point_clone()
@@ -95,20 +109,23 @@ def abstract_NUTS_xhmc(q_init,epsilon,Ham,leapfrog,max_tdepth,xhmc_delta):
     q_prop = q_init.point_clone()
     log_w = -Ham.evaluate(q_init,p_init)
     H_0 = -log_w
-    ave = dG_dt(q_init, p_init)
+    accepted = False
+    divergent = False
+    ave = Ham.dG_dt(q_init, p_init)
     s = True
     while s:
         v = numpy.random.choice([-1,1])
         if v < 0:
-            q_left, p_left, _, _, q_prime,p_prime, s_prime, log_w_prime,ave_dp,num_div_prime = abstract_BuildTree_nuts_xhmc(q_left, p_left, -1, j, epsilon, leapfrog, Ham,
-                                                                            dG_dt,xhmc_delta,H_0)
+            q_left, p_left, _, _, q_prime,p_prime, s_prime, log_w_prime,ave_dp,num_div_prime = abstract_BuildTree_nuts_xhmc(q_left, p_left, -1, j, epsilon, Ham,
+                                                                            xhmc_delta,H_0)
         else:
-            _, _, q_right, p_right,p_prime, q_prime, s_prime, log_w_prime,ave_dp,num_div_prime = abstract_BuildTree_nuts_xhmc(q_right, p_right, 1, j, epsilon, leapfrog, Ham,
-                                                                              dG_dt,xhmc_delta,H_0)
+            _, _, q_right, p_right,p_prime, q_prime, s_prime, log_w_prime,ave_dp,num_div_prime = abstract_BuildTree_nuts_xhmc(q_right, p_right, 1, j, epsilon, Ham,
+                                                                              xhmc_delta,H_0)
         if s_prime:
             accept_rate = math.exp(min(0,(log_w_prime-log_w)))
             u = numpy.random.rand(1)
             if u < accept_rate:
+                accepted = accepted or True
                 q_prop = q_prime.point_clone()
                 p_prop = p_prime.point_clone()
         oo = stable_sum(ave, log_w, ave_dp, log_w_prime)
@@ -119,10 +136,14 @@ def abstract_NUTS_xhmc(q_init,epsilon,Ham,leapfrog,max_tdepth,xhmc_delta):
         s = s and (j<max_tdepth)
         num_div +=num_div_prime
     Ham.diagnostics.update_time()
-    return(q_prop,p_prop,p_init,j,num_div)
-def abstract_BuildTree_nuts(q,p,v,j,epsilon,leapfrog,Ham,H_0):
+    if num_div > 0:
+        divergent = True
+        p_prop = None
+
+    return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
+def abstract_BuildTree_nuts(q,p,v,j,epsilon,Ham,H_0):
     if j ==0:
-        q_prime,p_prime = leapfrog(q,p,v*epsilon,Ham)
+        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
 
@@ -137,14 +158,13 @@ def abstract_BuildTree_nuts(q,p,v,j,epsilon,leapfrog,Ham,H_0):
         return q_prime, p_prime, q_prime, p_prime, q_prime, p_prime, continue_divergence, log_w_prime, num_div
     else:
         # first half of subtree
-        q_left, p_left, q_right, p_right, q_prime, p_prime,s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q, p, v, j - 1, epsilon, leapfrog, Ham,H_0)
+        q_left, p_left, q_right, p_right, q_prime, p_prime,s_prime, log_w_prime,num_div_prime = abstract_BuildTree_nuts(q, p, v, j - 1, epsilon, Ham,H_0)
         # second half of subtree
         if s_prime:
             if v <0:
-                q_left,p_left,_,_,q_dprime,p_dprime,s_dprime,log_w_dprime,num_div_dprime = abstract_BuildTree_nuts(q_left,p_left,v,j-1,epsilon,leapfrog,Ham,H_0)
+                q_left,p_left,_,_,q_dprime,p_dprime,s_dprime,log_w_dprime,num_div_dprime = abstract_BuildTree_nuts(q_left,p_left,v,j-1,epsilon,Ham,H_0)
             else:
-                _, _, q_right, p_right, q_dprime,p_dprime, s_dprime, log_w_dprime,num_div_dprime = abstract_BuildTree_nuts(q_right, p_right, v, j - 1, epsilon,
-                                                                                 leapfrog, Ham,H_0)
+                _, _, q_right, p_right, q_dprime,p_dprime, s_dprime, log_w_dprime,num_div_dprime = abstract_BuildTree_nuts(q_right, p_right, v, j - 1, epsilon, Ham,H_0)
             accept_rate = math.exp(min(0,(log_w_dprime-logsumexp(log_w_prime,log_w_dprime))))
             u = numpy.random.rand(1)[0]
             if u < accept_rate:
@@ -155,12 +175,12 @@ def abstract_BuildTree_nuts(q,p,v,j,epsilon,leapfrog,Ham,H_0):
             log_w_prime = logsumexp(log_w_prime,log_w_dprime)
         return q_left, p_left, q_right, p_right, q_prime, p_prime, s_prime, log_w_prime,num_div_prime
 
-def abstract_BuildTree_gnuts(q,p,v,j,epsilon,leapfrog,Ham,p_sharp_fun,H_0):
+def abstract_BuildTree_gnuts(q,p,v,j,epsilon,Ham,H_0):
 
     #p_sharp_fun(q,p) takes tensor returns tensor
 
     if j ==0:
-        q_prime,p_prime = leapfrog(q,p,v*epsilon,Ham)
+        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
         if (abs(H_cur - H_0) < 1000):
@@ -174,18 +194,18 @@ def abstract_BuildTree_gnuts(q,p,v,j,epsilon,leapfrog,Ham,p_sharp_fun,H_0):
         # first half of subtree
         sum_p = torch.zeros(len(p.flattened_tensor))
         q_left, p_left, q_right, p_right, q_prime,p_prime, s_prime, log_w_prime,temp_sum_p,num_div_prime = abstract_BuildTree_gnuts(q, p, v, j - 1,
-                                                                                                     epsilon, leapfrog,
-                                                                                                     Ham,p_sharp_fun,H_0)
+                                                                                                     epsilon,
+                                                                                                     Ham,H_0)
         sum_p += temp_sum_p
         # second half of subtree
         if s_prime:
             if v <0:
                 q_left,p_left,_,_,q_dprime,p_dprime,s_dprime,log_w_dprime,sum_dp,num_div_dprime = abstract_BuildTree_gnuts(q_left,p_left,v,j-1,epsilon,
-                                                                                          leapfrog,Ham,
-                                                                                          p_sharp_fun,H_0)
+                                                                                          Ham,
+                                                                                          H_0)
             else:
                 _, _, q_right, p_right, q_dprime, p_dprime,s_dprime, log_w_dprime,sum_dp,num_div_dprime = abstract_BuildTree_gnuts(q_right, p_right, v, j - 1, epsilon,
-                                                                                 leapfrog, Ham,p_sharp_fun,H_0)
+                                                                                 Ham,H_0)
             accept_rate = math.exp(min(0,(log_w_dprime-logsumexp(log_w_prime,log_w_dprime))))
             u = numpy.random.rand(1)[0]
             if u < accept_rate:
@@ -193,14 +213,14 @@ def abstract_BuildTree_gnuts(q,p,v,j,epsilon,leapfrog,Ham,p_sharp_fun,H_0):
                 p_prime = p_dprime.point_clone()
             sum_p += sum_dp
             num_div_prime +=num_div_dprime
-            p_sleft = p_sharp_fun(q_left,p_left)
-            p_sright = p_sharp_fun(q_right,p_right)
+            p_sleft = Ham.p_sharp_fun(q_left,p_left)
+            p_sright = Ham.p_sharp_fun(q_right,p_right)
             s_prime = s_dprime and abstract_gen_NUTS_criterion(p_sleft, p_sright, sum_p)
             log_w_prime = logsumexp(log_w_prime,log_w_dprime)
         return q_left, p_left, q_right, p_right, q_prime,p_prime, s_prime, log_w_prime,sum_p,num_div_prime
-def abstract_BuildTree_nuts_xhmc(q,p,v,j,epsilon,leapfrog,Ham,dG_dt,xhmc_delta,H_0):
+def abstract_BuildTree_nuts_xhmc(q,p,v,j,epsilon,Ham,xhmc_delta,H_0):
     if j ==0:
-        q_prime,p_prime = leapfrog(q,p,v*epsilon,Ham)
+        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
         if(abs(H_cur-H_0)<1000):
@@ -209,22 +229,22 @@ def abstract_BuildTree_nuts_xhmc(q,p,v,j,epsilon,leapfrog,Ham,dG_dt,xhmc_delta,H
         else:
             continue_divergence = False
             num_div = 1
-        ave = dG_dt(q, p)
+        ave = Ham.dG_dt(q, p)
         return q_prime, p_prime, q_prime, p_prime, q_prime,p_prime, continue_divergence, log_w_prime, ave, num_div
     else:
         # first half of subtree
         q_left, p_left, q_right, p_right, q_prime,p_prime, s_prime, log_w_prime, ave_prime,num_div_prime = abstract_BuildTree_nuts_xhmc(q, p, v, j - 1,
-                                                                                                         epsilon, leapfrog,
-                                                                                                         Ham,dG_dt,xhmc_delta,H_0)
+                                                                                                         epsilon,
+                                                                                                         Ham,xhmc_delta,H_0)
         # second half of subtree
         if s_prime:
             if v <0:
                 q_left,p_left,_,_,q_dprime,p_dprime,s_dprime,log_w_dprime, ave_dprime,num_div_dprime = abstract_BuildTree_nuts_xhmc(q_left,p_left,v,j-1,
-                                                                                              epsilon,leapfrog,
-                                                                                              Ham,dG_dt,xhmc_delta,H_0)
+                                                                                              epsilon,
+                                                                                              Ham,xhmc_delta,H_0)
             else:
                 _, _, q_right, p_right, q_dprime,p_dprime, s_dprime, log_w_dprime, ave_dprime,num_div_dprime = abstract_BuildTree_nuts_xhmc(q_right, p_right, v, j - 1, epsilon,
-                                                                                 leapfrog, Ham,dG_dt,xhmc_delta,H_0)
+                                                                                 Ham,xhmc_delta,H_0)
             accept_rate = math.exp(min(0,(log_w_dprime-logsumexp(log_w_prime,log_w_dprime))))
             u = numpy.random.rand(1)[0]
             if u < accept_rate:
