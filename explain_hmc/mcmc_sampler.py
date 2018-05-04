@@ -3,7 +3,9 @@ import numpy,multiprocessing
 from abstract.abstract_adapt_util import welford, adapt_ep, return_update_ep_list
 import GPyOpt
 from explicit.adapt_util import return_update_GPyOpt_list
-
+import torch
+from abstract.abstract_genleapfrog_ult_util import *
+from abstract.abstract_leapfrog_ult_util import *
 
 # number of samples
 # thinning
@@ -21,10 +23,11 @@ from explicit.adapt_util import return_update_GPyOpt_list
 # at a number of samples
 class mcmc_sampler(object):
 
-    def __init__(self,sampler_one_step,adapter,num_samples_per_chain,thinning,warm_up_per_chain,initialization,num_chains,parallel_computing,precision,isstore_to_disk):
+    def __init__(self,sampler_one_step,adapter=None,num_samples_per_chain=2000,thin=1,warm_up_per_chain=None,initialization=None,num_chains=4,parallel_computing=False,is_float=False,isstore_to_disk=False):
         self.store_chains = numpy.empty(num_chains, object)
         self.parallel_computing = parallel_computing
         self.num_chains = num_chains
+
 
         return()
 
@@ -38,7 +41,7 @@ class mcmc_sampler(object):
         else:
             result_sequential = [None]*self.num_chains
             for i in range(self.num_chains):
-                result_sequential.append(one_chain_experiment.run())
+                result_sequential.append(one_chain_experiment.run)
                 #experiment = one_chain_sampling(self.precision, self.initialization, self.sampler_one_step, self.adapter)
 
         return()
@@ -61,14 +64,31 @@ class sampling_metadata(object):
         self.thin_while_sampling = thin
 
 
+def generate_sampler_one_step(Ham,windowed,is_float,fixed_tune_dict,tune_dict):
+
+    if is_float==True:
+        precision_type = 'torch.FloatTensor'
+    else:
+        precision_type = 'torch.DoubleTensor'
+        #
+    torch.set_default_tensor_type(precision_type)
+
+    out = wrap(windowed,fixed_tune_dict,tune_dict)
 
 
+# want it so that sampler_one_step only has inputq and tuning paramater
+# supply tuning parameter with a dictionary
+# fixed_tune dict stores name and val of tuning paramter that stays the same throughout the entire chain
+# tune dict stores two things : param tuned by pyopt, parm tuned by dual averaging
+# always start tuning ep first
+#
+def wrap(windowed,fixed_tune_dict,tune_dict):
 
 class one_chain_obj(object):
     def __init__(self,Ham,windowed,precision,sampling_metadata=None,initialization=None,adapter=None):
         self.sampling_metadata = sampling_metadata
         self.precision = precision
-        self.sampler_one_step = generate_sampler_one_step(Ham,windowed,precision)
+        self.sampler_one_step = generate_sampler_one_step(Ham,windowed,precision,fixed_tune_dict,tune_dict)
         self.initialization = initialization
         self.adapter = adapter
         self.store_samples = numpy.empty()
