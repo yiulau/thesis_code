@@ -2,9 +2,10 @@ library(RcppCNPy)
 library(coda)
 library(mcmcse)
 
+shape = npyLoad("shape.npy")
 
-fmat = array(0,c(2,40,4))
-for(i in 1:2){
+fmat = array(0,shape)
+for(i in 1:shape[1]){
   name = paste(c("temp",i-1,".npy"),collapse="")
   fmat[i,,] = npyLoad(name)
 }
@@ -24,7 +25,11 @@ list_obj = mcmc.list(store_list)
 ess(flattened_mat)
 effectiveSize(list_obj)
 # traceplots 
-plot(list_obj)
+#plot(list_obj)
 
 # gelman statistics
-gelman.diag(list_obj)
+out = gelman.diag(list_obj)
+gelman_matrix = as.matrix(out[[1]])
+
+# write to numpy file
+npySave("routput.npy",gelman_matrix)
