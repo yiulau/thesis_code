@@ -3,7 +3,7 @@ from explicit.general_util import logsumexp, stable_sum
 from general_util.time_diagnostics import time_diagnositcs
 
 
-def abstract_NUTS(q_init,epsilon,Ham,max_tdepth):
+def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5):
     # input and output are point objects
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
@@ -47,7 +47,7 @@ def abstract_NUTS(q_init,epsilon,Ham,max_tdepth):
         p_prop = None
 
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
-def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth):
+def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5):
     # sum_p should be a tensor instead of variable
 
     Ham.diagnostics = time_diagnositcs()

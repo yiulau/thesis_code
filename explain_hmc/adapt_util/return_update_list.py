@@ -1,4 +1,4 @@
-from adapt_list.update_list_util import *
+from adapt_util.update_list_util import *
 def return_update_lists(tune_l, tune_fast, tune_medium, tune_slow, ini_buffer=75, end_buffer=50, window_size=25,
                         min_medium_updates=10,min_slow_updates=2):
     # returns three lists

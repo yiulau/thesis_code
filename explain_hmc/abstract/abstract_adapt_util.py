@@ -163,7 +163,190 @@ def return_update_ep_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25):
             output_list.append(counter-1)
     return(output_list)
 
+def return_update_slow_list(tune_l,ini_buffer=75,end_buffer=50,slow_window_size=25,scale_factor=2):
+    # returns indices at which the chain ends a covariance update window and also updates epsilon once
+    if tune_l < ini_buffer + end_buffer + slow_window_size:
+        raise ValueError("warmup iterations not long enough")
+    else:
+        cur_window_size = slow_window_size
+        counter = self.slow_start
+        overshoots = False
+        output_list = []
+        while not overshoots:
+            counter = counter + cur_window_size
+            cur_window_size = cur_window_size * scale_factor
+            overshoots = (counter >= self.slow_end)
+            #overshoots = counter >= tune_l - end_buffer
+            if overshoots:
+                output_list.append(tune_l-end_buffer-1)
+            else:
+                output_list.append(counter-1)
+    return(output_list)
+
+
+def return_update_lists(tune_l,ini_buffer=75,end_buffer=50,window_size=25,min_medium_updates=10):
+    # returns three lists
+    # fast list , medium list , slow list
+    fast_list = []
+    medium_list = []
+    slow_list = []
+    tune_fast = False
+    tune_medium = False
+    tune_slow = False
+    window_size = 25
+    cur_slow_window = window_size
+
+    counter = 0
+    if tune_fast==False:
+        ini_buffer = 0
+        end_buffer = 0
+    if tune_medium==False:
+        min_medium_updates=0
+
+
+    first_start_f = 0
+    first_end_f = ini_buffer
+    second_start_f = tune_l - ini_buffer
+    second_end_f = tune_l
+    first_start_m = first_end_f
+    first_end_m = first_end_f + min_medium_updates*window_size
+    second_end_m = second_start_f
+    second_start_m = second_end_m - round(min_medium_updates*3/4)*window_size
+    start_s = first_end_m
+    end_s = second_start_m
+
+
+    if tune_fast == False:
+        first_start_m = first_start_f
+        second_end_m = tune_l
+    if tune_medium == False:
+        start_s = first_start_m
+        end_s = second_end_m
+    if tune_slow == False:
+        first_end_m = second_end_m
+
+    overshoots = False
+
+    counter = 0
+    while not overshoots:
+        if counter < first_end_f:
+            fast_list.append(counter)
+            counter += 1
+        elif counter < first_end_m and counter >=first_start_m:
+            medium_list.append(counter)
+            fast_list.append(counter)
+
+            counter += window_size
+        elif counter < end_s and counter >= start_s:
+            slow_list.append(counter)
+            medium_list.append(counter)
+            fast_list.append(counter)
+            counter += slow_window_size
+            slow_window_size = slow_window_size * 2
+
+        elif counter < second_end_m and counter >= second_start_m:
+            medium_list.append(counter)
+            fast_list.append(counter)
+            counter += window_size
+
+        elif counter < second_end_f and counter >= second_start_f:
+            fast_list.append(counter)
+            counter +=1
+        else:
+            overshoots = True
+
+
+    return(fast_list,medium_list,slow_list)
 
 
 
 
+
+
+
+
+
+
+
+
+    if not self.tune_fast_parm:
+        fast_end = 0
+        if not self.tune_medium_param:
+            medium_end = 0
+            if not self.tune_slow_param:
+                slow_end = 0
+
+
+
+    if tune_l < ini_buffer + end_buffer + window_size:
+        return("error")
+    else:
+        cur_window_size = window_size
+        counter = 0
+        overshoots = False
+        output_list = []
+        while not overshoots:
+            if counter<ini_buffer:
+                counter+=1
+                output_list.append(counter - 1)
+            else:
+                counter = counter + cur_window_size
+                cur_window_size = cur_window_size * 2
+                overshoots = counter >= tune_l - end_buffer
+                if overshoots:
+                    output_list.append(tune_l-end_buffer-1)
+                else:
+                    output_list.append(counter-1)
+        if counter >  tune_l - end_buffer:
+            output_list.append(counter-1)
+    return(output_list)
+
+def return_update_medium_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25):
+    # returns indices at which the chain updates epsilon once
+    if tune_l < ini_buffer + end_buffer + window_size:
+        return("error")
+    else:
+        cur_window_size = window_size
+        counter = 0
+        overshoots = False
+        output_list = []
+        while not overshoots:
+            if counter<ini_buffer:
+                counter+=1
+                output_list.append(counter - 1)
+            else:
+                counter = counter + cur_window_size
+                cur_window_size = cur_window_size * 2
+                overshoots = counter >= tune_l - end_buffer
+                if overshoots:
+                    output_list.append(tune_l-end_buffer-1)
+                else:
+                    output_list.append(counter-1)
+        if counter >  tune_l - end_buffer:
+            output_list.append(counter-1)
+    return(output_list)
+
+def return_update_slow_list(tune_l,ini_buffer=75,end_buffer=50,window_size=25):
+    # returns indices at which the chain updates epsilon once
+    if tune_l < ini_buffer + end_buffer + window_size:
+        return("error")
+    else:
+        cur_window_size = window_size
+        counter = 0
+        overshoots = False
+        output_list = []
+        while not overshoots:
+            if counter<ini_buffer:
+                counter+=1
+                output_list.append(counter - 1)
+            else:
+                counter = counter + cur_window_size
+                cur_window_size = cur_window_size * 2
+                overshoots = counter >= tune_l - end_buffer
+                if overshoots:
+                    output_list.append(tune_l-end_buffer-1)
+                else:
+                    output_list.append(counter-1)
+        if counter >  tune_l - end_buffer:
+            output_list.append(counter-1)
+    return(output_list)

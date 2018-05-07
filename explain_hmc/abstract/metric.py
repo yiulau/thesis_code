@@ -6,9 +6,12 @@ class metric(object):
     def __init__(self,name,V_instance,alpha=None):
 
         self.name = name
-        if name=="unit_e":
+        self.criterion = criterion
+        if not self.criterion=="gnuts" or not self.criterion=="nuts" or not self.criterion=="xhmc":
+            raise ValueError("unknown termination criterion")
+        if self.name=="unit_e":
             pass
-        elif name=="diag_e":
+        elif self.name=="diag_e":
             self.num_var = V_instance.num_var
             self.store_shapes = V_instance.store_shapes
             self.store_lens = V_instance.store_lens

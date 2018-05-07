@@ -128,7 +128,7 @@ def abstract_HMC_alt_ult(epsilon, L, init_q,Ham,evol_t=None,careful=True):
     Ham.diagnostics.update_time()
     return(return_q,return_p,init_p,return_H,accepted,accept_rate,divergent,num_transitions)
 
-def abstract_HMC_alt_windowed(epsilon, L, current_q, leapfrog_window, Ham,evol_t=None,careful=True):
+def abstract_HMC_alt_windowed(epsilon, L, current_q, Ham,evol_t=None,careful=True):
     # evaluate gradient 2*L times
     # evluate H function L times
     if not L==None and not evol_t==None:

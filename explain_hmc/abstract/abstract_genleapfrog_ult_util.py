@@ -238,7 +238,7 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,Ham,delta=0.1):
     p.load_flatten()
 
     return(q,p)
-def rmhmc_step(init_q,epsilon,L,Ham,careful=True):
+def rmhmc_step(init_q,epsilon,L,Ham,evolve_t=None,careful=True):
 
 
     Ham.diagnostics = time_diagnositcs()

@@ -15,3 +15,19 @@ def get_list_stats(list_var):
         store_slices[i] = numpy.s_[cur:(cur+store_lens[i])]
         cur = cur+store_lens[i]
     return (store_shape, store_lens, dim,store_slices)
+
+
+
+class welford(object):
+    def __init__(self):
+        self.iter = 0
+        self.m_ = 0
+        self.m_2 = 0
+
+    def mean(self,next_sample,m_):
+        delta = (next_sample - m_)
+        m_ += delta / self.iter
+        self.iter += 1
+        self.m_ = m_
+        self.m_2  += (next_sample-m_) * delta
+        return(m_)
