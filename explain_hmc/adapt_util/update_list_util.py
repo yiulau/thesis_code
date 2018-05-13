@@ -216,6 +216,7 @@ def msm(window_size=25,min_medium_updates=5,min_slow_updates=2,tune_l=250):
 # f
 # case5
 def f(tune_l=250):
+    #print("yes")
     case = 5
     fast_list = []
     medium_list = []
@@ -228,6 +229,8 @@ def f(tune_l=250):
             counter += 1
         else:
             overshoots = True
+
+
     return(fast_list,medium_list,slow_list)
 
 #out = f(tune_l=2500)

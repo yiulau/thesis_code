@@ -3,7 +3,7 @@ from explicit.general_util import logsumexp, stable_sum
 from general_util.time_diagnostics import time_diagnositcs
 
 
-def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5):
+def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
     # input and output are point objects
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
@@ -46,8 +46,15 @@ def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5):
         divergent = True
         p_prop = None
 
+
+    if not log_obj is None:
+        log_obj.store.update({"prop_H":-log_w})
+        log_obj.store.update({"accepted":accepted})
+        log_obj.store.update({"accept_rate":accept_rate})
+        log_obj.store.update({"divergent":divergent})
+        log_obj.store.update({"tree_depth":j})
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
-def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5):
+def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
     # sum_p should be a tensor instead of variable
 
     Ham.diagnostics = time_diagnositcs()
@@ -95,8 +102,15 @@ def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5):
     if num_div > 0 :
         divergent = True
         p_prop = None
+
+    if hasattr(abstract_GNUTS,"log_obj"):
+        abstract_GNUTS.log_obj.update({"prop_H":-log_w})
+        abstract_GNUTS.log_obj.update({"accepted":accepted})
+        abstract_GNUTS.log_obj.update({"accept_rate":accept_rate})
+        abstract_GNUTS.log_obj.update({"divergent":divergent})
+        abstract_GNUTS.log_obj.update({"tree_depth":j})
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
-def abstract_NUTS_xhmc(q_init,epsilon,Ham,max_tdepth,xhmc_delta):
+def abstract_NUTS_xhmc(q_init,epsilon,Ham,xhmc_delta,max_tdepth=5,log_obj=None):
 
     Ham.diagnostics = time_diagnositcs()
     p_init = Ham.T.generate_momentum(q_init)
@@ -140,6 +154,12 @@ def abstract_NUTS_xhmc(q_init,epsilon,Ham,max_tdepth,xhmc_delta):
         divergent = True
         p_prop = None
 
+    if not log_obj is None:
+        log_obj.store.update({"prop_H":-log_w})
+        log_obj.store.update({"accepted":accepted})
+        log_obj.store.update({"accept_rate":accept_rate})
+        log_obj.store.update({"divergent":divergent})
+        log_obj.store.update({"tree_depth":j})
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
 def abstract_BuildTree_nuts(q,p,v,j,epsilon,Ham,H_0):
     if j ==0:

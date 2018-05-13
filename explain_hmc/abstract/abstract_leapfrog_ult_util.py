@@ -1,5 +1,6 @@
 import math,numpy
 from general_util.time_diagnostics import time_diagnositcs
+from abstract.abstract_genleapfrog_ult_util import gleapfrog_stat
 # all functions modify (q,p)
 
 
@@ -18,7 +19,9 @@ def abstract_leapfrog_ult(q,p,epsilon,Ham):
     p.load_flatten()
     q.load_flatten()
 
-    return(q,p)
+    return(q,p,gleapfrog_stat())
+
+
 
 def abstract_leapfrog_window(q_left,p_left,q_right,p_right,epsilon,Ham,logw_old,qprop_old,pprop_old):
     # Input: q,p current (q,p) state in trajecory
@@ -93,7 +96,7 @@ def abstract_HMC_alt_ult(epsilon, L, init_q,Ham,evol_t=None,careful=True):
         q,p = Ham.integrator(q, p, epsilon,Ham)
         if careful:
             temp_H = Ham.evaluate(q, p)
-            if(abs(temp_H-current_H)>1000):
+            if(abs(temp_H-current_H)>1000 ):
                 return_q = init_q
                 return_H = current_H
                 accept_rate = 0
@@ -168,3 +171,52 @@ def abstract_HMC_alt_windowed(epsilon, L, current_q, Ham,evol_t=None,careful=Tru
 
     #return(q_prop,accep_rate_sum/L)
     return(q_prop,p_prop,p_init,-logw_prop,accepted,accept_rate,divergent,L)
+
+
+
+
+
+def windowerize(integrator):
+    def windowed_integrator(q_left, p_left, q_right, p_right, epsilon, Ham, logw_old, qprop_old, pprop_old):
+        # Input: q,p current (q,p) state in trajecory
+        # q,p point objects
+        # qprop_old, pprop_old current proposed states in trajectory
+        # logw_old = -H(qprop_old,pprop_old,return_float=True)
+        # evaluate gradient 2 times
+        # evaluate H 1 time
+
+        v = numpy.random.choice([-1, 1])
+
+        if v < 0:
+            q_left, p_left,stat = integrator(q_left, p_left, v * epsilon, Ham)
+            divergent = stat.divergent
+            logw_prop = -Ham.evaluate(q_left, p_left)
+
+        else:
+            q_right, p_right,stat = integrator(q_right, p_right, v * epsilon, Ham)
+            divergent = stat.divergent
+            logw_prop = -Ham.evaluate(q_right, p_right)
+
+        if (abs(logw_prop - logw_old) > 1000 or divergent):
+            accept_rate = 0
+            divergent = True
+
+        else:
+            # uniform progressive sampling
+            # accept_rate = math.exp(min(0, (logw_prop - logsumexp(logw_prop, logw_old))))
+            # baised progressive sampling
+            accept_rate = math.exp(min(0, logw_prop - logw_old))
+            divergent = False
+        u = numpy.random.rand(1)[0]
+        if u < accept_rate:
+            qprop = q_right
+            pprop = p_right
+            accepted = True
+        else:
+            qprop = qprop_old
+            pprop = pprop_old
+            logw_prop = logw_old
+            accepted = False
+
+        return (q_left, p_left, q_right, p_right, qprop, pprop, logw_prop, divergent, accepted, accept_rate)
+    return(windowed_integrator)

@@ -6,9 +6,7 @@ class metric(object):
     def __init__(self,name,V_instance,alpha=None):
 
         self.name = name
-        self.criterion = criterion
-        if not self.criterion=="gnuts" or not self.criterion=="nuts" or not self.criterion=="xhmc":
-            raise ValueError("unknown termination criterion")
+
         if self.name=="unit_e":
             pass
         elif self.name=="diag_e":

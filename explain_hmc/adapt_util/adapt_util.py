@@ -1,57 +1,60 @@
 import torch
 def tuneable_param(dynamic,second_order,metric,criterion,input_time):
+    # returns a tuple containing the name of tuneable parameters given the configurations.
+    # input_time a boolean variable.
+    # when True means the number of leapfrog steps is represented by evolve_L = round(evolve_t/epsilon)
     if dynamic==True:
         if second_order==True:
             if criterion=="xhmc":
-                out = ("ep","xhmc_delta","alpha")
+                out = ("epsilon","xhmc_delta","alpha")
             elif criterion=="gnuts" or criterion=="nuts":
-                out = ("ep","alpha")
+                out = ("epsilon","alpha")
             else:
                 raise ValueError("unknown criterion")
         else:
             if criterion=="xhmc":
                 if metric=="unit_e":
-                    out = ("ep","xhmc_delta")
+                    out = ("epsilon","xhmc_delta")
                 elif metric=="diag_e":
-                    out = ("ep","xhmc_delta","diag_cov")
+                    out = ("epsilon","xhmc_delta","diag_cov")
                 elif metric=="dense_e":
-                    out = ("ep","xhmc_delta","cov")
+                    out = ("epsilon","xhmc_delta","cov")
                 else:
                     raise ValueError("unknown metric")
             elif criterion=="gnuts" or criterion=="nuts":
                 if metric=="unit_e":
-                    out = ("ep")
+                    out = ("epsilon")
                 elif metric=="diag_e":
-                    out = ("ep","diag_cov")
+                    out = ("epsilon","diag_cov")
                 elif metric=="dense_e":
-                    out = ("ep","cov")
+                    out = ("epsilon","cov")
                 else:
                     raise ValueError("unknown metric")
 
     else:
         if second_order==True:
             if input_time:
-                out = ("ep","t","alpha")
+                out = ("epsilon","evolve_t","alpha")
             else:
-                out = ("ep","L","alpha")
+                out = ("epsilon","evolve_L","alpha")
 
         else:
             if input_time:
                 if metric == "unit_e":
-                    out = ("ep","t")
+                    out = ("epsilon","evolve_t")
                 elif metric == "diag_e":
-                    out = ("ep","t","diag_cov")
+                    out = ("epsilon","evolve_t","diag_cov")
                 elif metric == "dense_e":
-                    out = ("ep","L","cov")
+                    out = ("epsilon","evolve_L","cov")
                 else:
                     raise ValueError("unknown metric")
             else:
                 if metric=="unit_e":
-                    out = ("ep","L")
+                    out = ("epsilon","evolve_L")
                 elif metric=="diag_e":
-                    out = ("ep","L","diag_cov")
+                    out = ("epsilon","evolve_L","diag_cov")
                 elif metric=="dense_e":
-                    out = ("ep","L","cov")
+                    out = ("epsilon","evolve_L","cov")
                 else:
                     raise ValueError("unknown metric")
     return(out)

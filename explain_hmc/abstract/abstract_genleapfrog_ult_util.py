@@ -6,6 +6,12 @@ from general_util.time_diagnostics import time_diagnositcs
 # dphidq = dVdq + log(det(Sigma(q)))
 
 
+class gleapfrog_stat(object):
+    #collects information from start to beginning of one leapfrog/genleapfrog step
+    def __init__(self):
+        self.divergent = False
+        self.first_divergent = None
+        self.second_divergent = None
 
 
 def genleapfrog_wrap(delta,H):
@@ -16,24 +22,17 @@ def genleapfrog_wrap(delta,H):
 def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
-
+    stat = gleapfrog_stat()
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam, Q = eigen(H_)
-
-
-
     # dphidq outputs and inputs takes flattened gradient in flattened form
     p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(lam,dH,Q,dV)
-
-
 
     p.load_flatten()
     rho = p.flattened_tensor.clone()
     pprime = p.flattened_tensor.clone()
     deltap = delta + 0.5
     count = 0
-
-
 
     while (deltap > delta) and (count < 10):
         # dtaudq returns gradient in flattened form
@@ -42,16 +41,19 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
 
         count = count + 1
     if deltap>delta:
-        first_fi_divergent = False
-        print("pprime {}".format(pprime))
-        print("deltap {}".format(deltap))
-        print("first fi div")
-        print(count)
-        #return (q, p, True)
+
+        stat.divergent = True
+        stat.first_divergent = True
+        #print("pprime {}".format(pprime))
+        #print("deltap {}".format(deltap))
+        #print("first fi div")
+        #print(count)
+        return (q, p, stat)
     else:
-        first_fi_divergent = False
+        stat.first_divergent = False
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
+
 
     #print(first_fi_divergent)
     #print(p.flattened_tensor)
@@ -74,33 +76,35 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
         q.load_flatten()
         count = count + 1
     if deltaq>delta:
-        second_fi_divergent = False
-        print("second fi div")
-        #return(q,p,True)
+        stat.second_divergent = True
+        stat.divergent =True
+        #print("second fi div")
+        return(q,p,stat)
     else:
-        second_fi_divergent = False
+        stat.second_divergent = False
         q.flattened_tensor.copy_(qprime)
         q.load_flatten()
-    print("H is {}".format(Ham.evaluate(q,p)))
+    #print("H is {}".format(Ham.evaluate(q,p)))
 
 
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
-    print(0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
+    #print(0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
 
     p.flattened_tensor -= 0.5 * epsilon * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam)
-    print("H is {}".format(Ham.evaluate(q, p)))
+    #print("H is {}".format(Ham.evaluate(q, p)))
     p.load_flatten()
 
     p.flattened_tensor -= 0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
 
     p.load_flatten()
     #print("yes")
-    return(q,p,False)
+    return(q,p,stat)
 
 def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
+    stat = gleapfrog_stat()
     dV,mdiagH,mgraddiagH = Ham.V.get_graddiagH(q)
     mlambda,_ = Ham.T.fcomputeMetric(mdiagH)
     # dphidq outputs and inputs takes flattened gradient in flattened form
@@ -117,6 +121,19 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
         count = count + 1
+    if deltap>delta:
+
+        stat.divergent = True
+        stat.first_divergent = True
+        #print("pprime {}".format(pprime))
+        #print("deltap {}".format(deltap))
+        #print("first fi div")
+        #print(count)
+        return (q, p, stat)
+    else:
+        stat.first_divergent = False
+        p.flattened_tensor.copy_(pprime)
+        p.load_flatten()
 
     sigma = q.point_clone()
     qprime = q.flattened_tensor.clone()
@@ -134,6 +151,16 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):
         q.flattened_tensor.copy_(qprime)
         q.load_flatten()
         count = count + 1
+    if deltaq>delta:
+        stat.second_divergent = True
+        stat.divergent =True
+        #print("second fi div")
+        return(q,p,stat)
+    else:
+        stat.second_divergent = False
+        q.flattened_tensor.copy_(qprime)
+        q.load_flatten()
+    #print("H is {}".format(Ham.evaluate(q,p)))
 
     dV, mdiagH, mgraddiagH = Ham.V.get_graddiagH(q)
     mlambda, _ = Ham.T.fcomputeMetric(mdiagH)
@@ -143,11 +170,12 @@ def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):
     p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(dV,mdiagH,mgraddiagH,mlambda)
     p.load_flatten()
 
-    return(q,p)
+    return(q,p,stat)
 
 def generalized_leapfrog_softabs_op(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
+    stat = gleapfrog_stat()
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam, Q = eigen(H_)
     # dphidq outputs and inputs takes flattened gradient in flattened form
@@ -182,6 +210,15 @@ def generalized_leapfrog_softabs_op(q,p,epsilon,Ham,delta=0.1):
         q.load_flatten()
         count = count + 1
 
+    if deltaq>delta:
+        stat.second_divergent = True
+        stat.divergent =True
+        #print("second fi div")
+        return(q,p,stat)
+    else:
+        stat.second_divergent = False
+        q.flattened_tensor.copy_(qprime)
+        q.load_flatten()
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
 
@@ -190,11 +227,12 @@ def generalized_leapfrog_softabs_op(q,p,epsilon,Ham,delta=0.1):
     p.flattened_tensor -=0.5 * epsilon * Ham.T.dphidq(lam,dH,Q,dV)
     p.load_flatten()
 
-    return(q,p)
+    return(q,p,stat)
 
 def generalized_leapfrog_softabs_op_diag(q,p,epsilon,Ham,delta=0.1):
     # input output point object
     # can take anything but should output tensor
+    stat = gleapfrog_stat()
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam, Q = eigen(H_)
     # dphidq outputs and inputs takes flattened gradient in flattened form
@@ -211,6 +249,18 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,Ham,delta=0.1):
         p.flattened_tensor.copy_(pprime)
         p.load_flatten()
         count = count + 1
+    if deltap>delta:
+        stat.divergent = True
+        stat.first_divergent = True
+        #print("pprime {}".format(pprime))
+        #print("deltap {}".format(deltap))
+        #print("first fi div")
+        #print(count)
+        return (q, p, stat)
+    else:
+        stat.first_divergent = False
+        p.flattened_tensor.copy_(pprime)
+        p.load_flatten()
 
     sigma = q.point_clone()
     qprime = q.flattened_tensor.clone()
@@ -229,6 +279,15 @@ def generalized_leapfrog_softabs_op_diag(q,p,epsilon,Ham,delta=0.1):
         q.load_flatten()
         count = count + 1
 
+    if deltaq>delta:
+        stat.second_divergent = True
+        stat.divergent =True
+        #print("second fi div")
+        return(q,p,stat)
+    else:
+        stat.second_divergent = False
+        q.flattened_tensor.copy_(qprime)
+        q.load_flatten()
     dV,H_,dH = Ham.V.getdH_tensor(q)
     lam,Q = eigen(H_)
 

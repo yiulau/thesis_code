@@ -6,37 +6,37 @@ from abstract.T_softabs_diag import T_softabs_diag_e
 from abstract.T_softabs_diag_outer_product import T_softabs_diag_outer_product_e
 from abstract.T_softabs_outer_product import T_softabs_outer_product
 from abstract.abstract_genleapfrog_ult_util import *
-from abstract.abstract_leapfrog_ult_util import abstract_leapfrog_ult
+from abstract.abstract_leapfrog_ult_util import abstract_leapfrog_ult,windowerize
 class Hamiltonian(object):
     # hamiltonian function
     def __init__(self,V,metric):
         self.V = V
         self.metric = metric
         if self.metric.name=="unit_e":
-            obj = T_unit_e(metric,self.V)
+            T_obj = T_unit_e(metric,self.V)
             self.integrator = abstract_leapfrog_ult
-
         elif self.metric.name=="diag_e":
-            obj = T_diag_e(metric,self.V)
+            T_obj = T_diag_e(metric,self.V)
             self.integrator = abstract_leapfrog_ult
         elif self.metric.name=="dense_e":
-            obj = T_dense_e(metric,self.V)
+            T_obj = T_dense_e(metric,self.V)
             self.integrator = abstract_leapfrog_ult
         elif self.metric.name=="softabs":
-            obj = T_softabs_e(metric,self.V)
+            T_obj = T_softabs_e(metric,self.V)
             self.integrator = generalized_leapfrog
         elif self.metric.name=="softabs_diag":
-            obj = T_softabs_diag_e(metric,self.V)
+            T_obj = T_softabs_diag_e(metric,self.V)
             self.integrator = generalized_leapfrog_softabsdiag
         elif self.metric.name=="softabs_outer_product":
-            obj = T_softabs_outer_product(metric,self.V)
+            T_obj = T_softabs_outer_product(metric,self.V)
             self.integrator = generalized_leapfrog_softabs_op
         elif self.metric.name=="softabs_diag_outer_product":
-            obj = T_softabs_diag_outer_product_e(metric,self.V)
+            T_obj = T_softabs_diag_outer_product_e(metric,self.V)
             self.integrator = generalized_leapfrog_softabs_op_diag
 
+        self.windowed_integrator = windowerize(self.integrator)
 
-        self.T = obj
+        self.T = T_obj
         self.dG_dt = self.setup_dG_dt()
         self.p_sharp_fun = self.setup_p_sharp()
         self.diagnostics = time_diagnositcs()
