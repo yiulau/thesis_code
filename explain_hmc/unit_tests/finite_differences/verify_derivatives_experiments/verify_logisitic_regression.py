@@ -1,4 +1,4 @@
-from distributions.logistic_regression import V_logistic_regression
+from distributions.logistic_regressions.logistic_regression import V_logistic_regression
 import torch
 from unit_tests.finite_differences.finite_diff_funcs import compute_and_display_results
 

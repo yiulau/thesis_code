@@ -12,15 +12,11 @@ burn_in = 100
 alp =1e6
 dim = 8
 num_ob = 532
-recompile = False
-if recompile:
-    mod = pystan.StanModel(file="./alt_log_reg.stan")
-    with open('model.pkl', 'wb') as f:
-        pickle.dump(mod, f)
+stan_sampling = True
 
-mod = pickle.load(open('model.pkl', 'rb'))
+address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
 
-df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
+df = pd.read_csv(address,header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()
 #print(dfm)
@@ -44,9 +40,18 @@ num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
 #print(data)
 
-#fit = mod.sampling(data=data,refresh=0)
-#print(fit)
-#exit()
+if stan_sampling:
+    recompile = False
+    if recompile:
+        mod = pystan.StanModel(file="./alt_log_reg.stan")
+        with open('model.pkl', 'wb') as f:
+            pickle.dump(mod, f)
+    else:
+        mod = pickle.load(open('model.pkl', 'rb'))
+
+    fit = mod.sampling(data=data, refresh=0)
+
+exit()
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
 
 X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)

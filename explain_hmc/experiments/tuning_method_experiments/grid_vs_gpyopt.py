@@ -39,3 +39,12 @@
 # experiment 3 variables (model,integrator,objective function)
 # 3 x 3 numpy matrix. storing experiment information. depending on volume store the chain or just the experiment output
 
+
+
+# supertransitions . given supertranstions = 10000 leapfrogs. for each L convert to number of transitions
+
+def supertransitions(super_trans,L):
+    num_transitions = round(super_trans/L)
+    return(num_transitions)
+
+# so that each point in the grid uses the same number of leapfrog

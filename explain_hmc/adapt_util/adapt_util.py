@@ -72,3 +72,4 @@ def welford_tensor(next_sample,sample_counter,m_,m_2,diag):
     else:
         m_2 += torch.ger((next_sample-m_),delta)
     return(m_,m_2,sample_counter)
+

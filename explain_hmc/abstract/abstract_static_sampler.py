@@ -23,18 +23,23 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
         raise ValueError("L contradicts with evol_t")
     Ham.diagnostics = time_diagnositcs()
     if not evolve_t is None:
-        pass
+        assert evolve_L is None
+        evolve_L = round(evolve_t/epsilon)
     divergent = False
     num_transitions = evolve_L
     q = init_q.point_clone()
     init_p = Ham.T.generate_momentum(q)
     p = init_p.point_clone()
     current_H = Ham.evaluate(q,p)
+    #print(type(evolve_L))
+    #exit()
+    print("epsilon is {}".format(epsilon))
     for i in range(evolve_L):
-        q,p,stat = Ham.integrator(q, p, epsilon,Ham)
+        q, p, stat = Ham.integrator(q, p, epsilon, Ham)
         divergent = stat.divergent
         if careful:
             temp_H = Ham.evaluate(q, p)
+            print("H is {}".format(temp_H))
             if(abs(temp_H-current_H)>1000 or divergent):
                 return_q = init_q
                 return_H = current_H
@@ -55,6 +60,7 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
             divergent = True
 
         else:
+
             accept_rate = math.exp(min(0,current_H - proposed_H))
             divergent = False
             if (numpy.random.random(1) < accept_rate):
@@ -68,13 +74,14 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
                 return_p = init_p
                 return_H = current_H
     Ham.diagnostics.update_time()
-    #print(log_obj is None)
+        #print(log_obj is None)
     if not log_obj is None:
         log_obj.store.update({"prop_H":return_H})
         log_obj.store.update({"accepted":accepted})
         log_obj.store.update({"accept_rate":accept_rate})
         log_obj.store.update({"divergent":divergent})
-        log_obj.store.update({"evolve_L":evolve_L})
+        log_obj.store.update({"num_transitions":num_transitions})
+
     return(return_q,return_p,init_p,return_H,accepted,accept_rate,divergent,num_transitions)
 
 
@@ -85,7 +92,9 @@ def abstract_static_windowed_one_step(epsilon, init_q, Ham,evolve_L=None,evolve_
         raise ValueError("L contradicts with evol_t")
     Ham.diagnostics = time_diagnositcs()
     if not evolve_t is None:
-        pass
+        assert evolve_L is None
+        evolve_L = round(evolve_t/epsilon)
+
     divergent = False
     num_transitions = evolve_L
     accepted = False

@@ -3,9 +3,10 @@ from adapt_util.return_update_list import return_update_lists
 from adapt_util.tune_param_classes.tune_param_class import tune_param_creator
 import GPyOpt,numpy,torch,math
 from adapt_util.tune_param_classes.tuning_param_obj import tuning_param_states
+from adapt_util.tune_param_classes.tune_param_setting_util import default_adapter_setting
 class adapter_class(object):
     #
-    def __init__(self,one_chain_obj):
+    def __init__(self,one_chain_obj,adapter_setting=None):
 
         self.one_chain_experiment = one_chain_obj
         #print(one_chain_obj.__dict__.keys())
@@ -37,7 +38,10 @@ class adapter_class(object):
             if not self.criterion is None:
                 raise ValueError("static integrator should not have termination criterion. put None instead")
         #self.tuning_obj =
-
+        if adapter_setting is None:
+            self.adapter_setting = default_adapter_setting()
+        else:
+            self.adapter_setting = adapter_setting
         #self.adapter_meta = adapter_settings(one_chain_obj.sampling_metadata)
         #ep_obj = self.param_obj_dict["epsilon"]
         #if self.ep_obj.tune_method=="opt":
@@ -66,41 +70,48 @@ class adapter_class(object):
         self.tune_fast = False
         self.tune_medium = False
         self.tune_slow = False
-        for param,val in one_chain_obj.tune_dict:
-            # tune_method one of {fixed,dual,opt,adapt}
-            tune_method = self.tune_method_dict[param]
-            # par_type one of {fast,medium,slow}
-            par_type = self.par_type_dict[param]
-            if tune_method == "fixed":
-                pass
-            elif tune_method == "dual":
-                self.dual_dict.update({param:par_type})
-            elif tune_method == "opt":
-                self.opt_dict({param:par_type})
-            elif tune_method == "adapt":
-                self.adapt_dict({param:par_type})
-            else:
-                raise ValueError("unknown tune method")
-            if par_type == "fast":
-                self.fast_dict({param:tune_method})
-                self.tune_fast = True
-            elif par_type == "medium":
-                self.medium_dict({param:tune_method})
-                self.tune_medium = True
-            elif par_type == "slow":
-                self.slow_dict({param:tune_method})
-                self.tune_slow = True
-            else:
-                raise ValueError("unknow par type")
+        for param,val in one_chain_obj.tune_dict.items():
+            if param in self.par_type_dict:
+                # tune_method one of {fixed,dual,opt,adapt}
+                tune_method = self.tune_method_dict[param]
+                # par_type one of {fast,medium,slow}
+                par_type = self.par_type_dict[param]
+                if tune_method == "fixed":
+                    pass
+                elif tune_method == "dual":
+                    self.dual_dict.update({param:par_type})
+                elif tune_method == "opt":
+                    self.opt_dict.update({param:par_type})
+                elif tune_method == "adapt":
+                    self.adapt_dict.update({param:par_type})
+                else:
+                    raise ValueError("unknown tune method")
+                if par_type == "fast":
+                    self.fast_dict.update({param:tune_method})
+                    self.tune_fast = True
+                elif par_type == "medium":
+                    self.medium_dict.update({param:tune_method})
+                    self.tune_medium = True
+                elif par_type == "slow":
+                    self.slow_dict.update({param:tune_method})
+                    self.tune_slow = True
+                else:
+                    raise ValueError("unknow par type")
 
-        self.adapter_meta = adapter_settings(self.one_chain_experiment.sampling_metadata,
+        self.adapter_meta = adapter_metadata(self.one_chain_experiment.chain_setting,
                                              self.tune_fast, self.tune_medium, self.tune_slow)
 
         #self.update_fast_list, self.update_medium_list, self.update_slow_list = return_update_lists(self.adapter_meta)
-        choose_iter_dict = return_update_lists(self.adapter_meta)
-        self.update_fast_list = choose_iter_dict["fast"]
-        self.update_medium_list = choose_iter_dict["medium"]
-        self.update_fast_list = choose_iter_dict["slow"]
+        if self.adapter_meta.tune:
+            #print("yes_tune")
+
+            self.choose_iter_dict = return_update_lists(self.adapter_meta,self.adapter_setting)
+            self.update_fast_list = self.choose_iter_dict["fast"]
+            self.update_medium_list = self.choose_iter_dict["medium"]
+            self.update_slow_list = self.choose_iter_dict["slow"]
+            #print(self.choose_iter_dict)
+            #exit()
+
 
 
 
@@ -113,60 +124,78 @@ class adapter_class(object):
 
     def update(self,sample_obj):
         # by definition
-        slow_state = self.tuning_param_state.slow_state
-        medium_state = self.tuning_param_state.medium_state
-        fast_state = self.tuning_param_state.fast_state
+        assert hasattr(self,"tuning_param_states")
+        slow_state = self.tuning_param_states.slow_state
+        medium_state = self.tuning_param_states.medium_state
+        fast_state = self.tuning_param_states.fast_state
 
         if not fast_state is None:
             if hasattr(fast_state,"dual_state"):
                 fast_state.dual_state.update(sample_obj)
+            if hasattr(fast_state,"opt_state"):
+                fast_state.opt_state.update(sample_obj)
+            if hasattr(fast_state,"adapt_cov_state"):
+                fast_state.adapt_cov_state.update(sample_obj)
 
         if not medium_state is None:
             if hasattr(medium_state,"dual_state"):
                 medium_state.dual_state.update(sample_obj)
             if hasattr(medium_state,"opt_state"):
                 medium_state.opt_state.update(sample_obj)
-            if hasattr(medium_state,"adapt_state"):
-                medium_state.adapt_state.update(sample_obj)
+            if hasattr(medium_state,"adapt_cov_state"):
+                medium_state.adapt_cov_state.update(sample_obj)
 
         if not slow_state is None:
             if hasattr(slow_state,"dual_state"):
                 slow_state.dual_state.update(sample_obj)
             if hasattr(slow_state,"opt_state"):
                 slow_state.opt_state.update(sample_obj)
-            if hasattr(slow_state,"adapt_state"):
-                slow_state.adapt_state.update(sample_obj)
+            if hasattr(slow_state,"adapt_cov_state"):
+                slow_state.adapt_cov_state.update(sample_obj)
 
 
-    def prepare_adapter(self):
-        self.tuning_param_state = tuning_param_states(self)
-
-
-
-
-
-class dual_settings(object):
-    def __init__(self,ini_buffer=75,end_buffer=50):
-        self.ini_buffer = ini_buffer
-        self.end_buffer = end_buffer
+    #def prepare_adapter(self):
+    #    self.tuning_param_state = tuning_param_states(self)
 
 
 
-class opt_settings(object):
-    def __init__(self,min_medium_updates=10,):
-        self.min_medium_updates = min_medium_updates
 
-class adapt_settings(object):
-    def __init__(self,min_slow_updates):
-        self.min_slow_updates = min_slow_updates
-class adapter_settings(object):
-    def __init__(self,sampling_metadata,tune_fast,tune_medium,tune_slow,window_size=25):
-        self.num_samples = sampling_metadata.num_samples
-        self.tune_l = sampling_metadata.tune_l
-        self.window_size = window_size
+
+#class dual_settings(object):
+#    def __init__(self,ini_buffer=75,end_buffer=50):
+#        self.ini_buffer = ini_buffer
+#        self.end_buffer = end_buffer
+
+
+
+#class opt_settings(object):
+#    def __init__(self,min_medium_updates=10,):
+#        self.min_medium_updates = min_medium_updates
+
+#class adapt_settings(object):
+#    def __init__(self,min_slow_updates):
+#        self.min_slow_updates = min_slow_updates
+class adapter_metadata(object):
+    # records metadata about the adapter for a sampler obj
+    # does not set anything
+    def __init__(self,chain_setting,tune_fast,tune_medium,tune_slow):
+        self.num_samples = chain_setting["num_samples"]
+        self.tune_l = chain_setting["tune_l"]
         self.tune_fast = tune_fast
         self.tune_medium = tune_medium
         self.tune_slow = tune_slow
+        self.tune = self.tune_fast or self.tune_medium or self.tune_slow
+
+
+def adapter_metadata_dict(chain_setting,tune_fast,tune_medium,tune_slow):
+    # records metadata about the adapter for a sampler obj
+    # does not set anything
+    #def __init__(self,sampling_metadata,tune_fast,tune_medium,tune_slow):
+    out = {"num_samples":chain_setting.num_samples,"tune_l":chain_setting.tune_l,"tune_fast":tune_fast}
+    out.update({"tune_medium":tune_medium,"tune_slow":tune_slow})
+    tune = tune_fast or tune_medium or tune_slow
+    out.update({"tune":tune})
+    return(out)
 
 
 

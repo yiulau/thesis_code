@@ -15,18 +15,13 @@ chain_l = 500
 burn_in = 100
 max_tdepth = 10
 
-recompile = False
-if recompile:
-    mod = pystan.StanModel(file="./alt_log_reg.stan")
-    with open('model.pkl', 'wb') as f:
-        pickle.dump(mod, f)
-
-mod = pickle.load(open('model.pkl', 'rb'))
-
+stan_sampling = True
 
 y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 X_np = numpy.random.randn(num_ob,dim)
-df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
+address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
+
+df = pd.read_csv(address,header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()
 #print(dfm)
@@ -37,8 +32,17 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-fit = mod.sampling(data=data,refresh=0)
+if stan_sampling:
+    recompile = False
+    if recompile:
+        mod = pystan.StanModel(file="./alt_log_reg.stan")
+        with open('model.pkl', 'wb') as f:
+            pickle.dump(mod, f)
+    else:
+        mod = pickle.load(open('model.pkl', 'rb'))
 
+    fit = mod.sampling(data=data, refresh=0)
+exit()
 #print(fit)
 
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)

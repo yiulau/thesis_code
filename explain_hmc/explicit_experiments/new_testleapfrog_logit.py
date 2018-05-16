@@ -9,21 +9,15 @@ import pandas as pd
 
 dim = 4
 num_ob = 25
-chain_l = 2000
-burn_in = 1000
-recompile = False
-if recompile:
-    mod = pystan.StanModel(file="./alt_log_reg.stan")
-    with open('model.pkl', 'wb') as f:
-        pickle.dump(mod, f)
-
-mod = pickle.load(open('model.pkl', 'rb'))
+chain_l = 100
+burn_in = 5
+stan_sampling = True
 
 
-y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
-X_np = numpy.random.randn(num_ob,dim)
-
-df = pd.read_csv("./pima_india.csv",header=0,sep=" ")
+#y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
+#X_np = numpy.random.randn(num_ob,dim)
+address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
+df = pd.read_csv(address,header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()
 #print(dfm)
@@ -34,9 +28,20 @@ X_np = dfm[:,1:8]
 dim = X_np.shape[1]
 num_ob = X_np.shape[0]
 data = dict(y=y_np,X=X_np,N=num_ob,p=dim)
-#fit = mod.sampling(data=data,refresh=0)
 
 
+if stan_sampling:
+    recompile = False
+    if recompile:
+        mod = pystan.StanModel(file="./alt_log_reg.stan")
+        with open('model.pkl', 'wb') as f:
+            pickle.dump(mod, f)
+    else:
+        mod = pickle.load(open('model.pkl', 'rb'))
+
+    fit = mod.sampling(data=data, refresh=0)
+
+exit()
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
 
 X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)
@@ -61,12 +66,15 @@ def H(q,p,return_float):
     else:
         return((V(q)+T(p)))
 
+def generate_momentum(q):
+    return(torch.randn(len(q)))
 store = torch.zeros((chain_l,dim))
 for i in range(chain_l):
     print("round {}".format(i))
-    out = HMC_alt_ult(0.1,10,q,leapfrog_ult,H,False)
-    store[i,]=out[0]
-    q.data = out[0]
+    #out = HMC_alt_ult(0.1,10,q,leapfrog_ult,H,False)
+    out = HMC_alt_ult(epsilon=0.1,L=10,current_q=q,leapfrog=leapfrog_ult,H_fun=H,generate_momentum=generate_momentum)
+    store[i,]=out[0].data
+    q.data = out[0].data
 
 
 store = store[burn_in:,]
@@ -80,4 +88,4 @@ print("sd is {}".format(numpy.sqrt(numpy.diagonal(empCov))))
 print("mean is {}".format(emmean))
 
 
-print(fit)
+#print(fit)

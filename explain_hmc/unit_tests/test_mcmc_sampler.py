@@ -1,8 +1,7 @@
-from abstract.mcmc_sampler import mcmc_sampler,mcmc_sampler_settings,initialization
-from distributions.logistic_regression import V_logistic_regression
+from abstract.mcmc_sampler import mcmc_sampler,mcmc_sampler_settings
+from distributions.logistic_regressions.logistic_regression import V_logistic_regression
 from experiments.experiment_obj import tuneinput_class
-from adapt_util.adapter_class import adapter_class
-from experiments.experiment_obj import experiment
+
 mcmc_meta1 = mcmc_sampler_settings(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,
                                    warmup_per_chain=5,is_float=False,isstore_to_disk=False)
 

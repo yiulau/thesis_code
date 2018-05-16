@@ -78,7 +78,7 @@ def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun,generate_momentum):
     # Input:
     # current_q Pytorch Variable
     # H_fun(q,p,return_float) returns Pytorch Variable or float
-    # generate_momentum(q) returns pytorch variable
+    # generate_momentum(q) returns pytorch tensor
     # Output:
     # accept_rate: float - probability of acceptance
     # accepted: Boolean - True if proposal is accepted, False otherwise
@@ -111,13 +111,13 @@ def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun,generate_momentum):
             accepted = False
             return_q = current_q
             return_H = current_H
+    print("current_H {},propsed_H{}".format(current_H,proposed_H))
     return(return_q,return_H,accepted,accept_rate,divergent)
 
-def HMC_alt_ult_tensor(epsilon, L, current_q, leapfrog, V,T,H,generate_momentum):
+def HMC_alt_ult_tensor(epsilon, L, current_q, leapfrog, V,T,H):
     # Input:
     # current_q Pytorch tensor
     # H_fun(q,p,return_float) returns Pytorch Variable or float
-    # generate_momentum(q) returns pytorch variable
     # Output:
     # accept_rate: float - probability of acceptance
     # accepted: Boolean - True if proposal is accepted, False otherwise
@@ -150,6 +150,7 @@ def HMC_alt_ult_tensor(epsilon, L, current_q, leapfrog, V,T,H,generate_momentum)
             accepted = False
             return_q = current_q
             return_H = current_H
+
     return(return_q,return_H,accepted,accept_rate,divergent)
 def HMC_alt_windowed(epsilon, L, current_q, leapfrog_window, H_fun):
     p = Variable(torch.randn(len(current_q)), requires_grad=False)

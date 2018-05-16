@@ -341,22 +341,22 @@ class V(nn.Module):
             self.flattened_tensor = self.list_var[0].data
         return()
 
-    def dq(self,p_flattened_tensor):
-        self.load_flattened_tensor_to_param(p_flattened_tensor)
+    def dq(self,q_flattened_tensor):
+        self.load_flattened_tensor_to_param(q_flattened_tensor)
         g = grad(self.forward(), self.list_var)
-        out = torch.zeros(len(p_flattened_tensor))
+        out = torch.zeros(len(q_flattened_tensor))
         cur = 0
         for i in range(self.num_var):
             out[cur:(cur + self.store_lens[i])] = g[i].data.view(self.store_lens[i])
             cur = cur + self.store_lens[i]
         return(out)
-    def create_T(self,metric):
-        # metric object- includes information about type and cov or diag_v, or softabs
-        self.T = T(metric)
-        # might be problematic -- recrusive container
-        self.T.linkedV = self
-
-        return()
+    # def create_T(self,metric):
+    #     # metric object- includes information about type and cov or diag_v, or softabs
+    #     self.T = T(metric)
+    #     # might be problematic -- recrusive container
+    #     self.T.linkedV = self
+    #
+    #     return()
     def load_point(self,q_point):
         for i in range(self.num_var):
             # convert to copy_ later

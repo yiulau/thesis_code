@@ -1,4 +1,4 @@
-from distributions.hierarchical_logistic import V_hierarchical_logistic
+from distributions.logistic_regressions.hierarchical_logistic import V_hierarchical_logistic
 import torch
 from unit_tests.finite_differences.finite_diff_funcs import compute_and_display_results
 hierarchical_logistic_object = V_hierarchical_logistic()

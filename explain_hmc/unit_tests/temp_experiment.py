@@ -1,15 +1,8 @@
-from distributions.logistic_regression import V_logistic_regression
-from distributions.funnel_cp import V_funnel
-from abstract.abstract_class_point import point
+from distributions.logistic_regressions.logistic_regression import V_logistic_regression
 from abstract.abstract_class_Ham import Hamiltonian
 from abstract.metric import metric
-import torch,math,numpy
-import torch.nn as nn
-from torch.autograd import Variable
-from abstract.abstract_leapfrog_ult_util import abstract_HMC_alt_ult,abstract_leapfrog_ult,abstract_HMC_alt_windowed,abstract_leapfrog_window
-from abstract.abstract_genleapfrog_ult_util import rmhmc_step,generalized_leapfrog
-from abstract.abstract_nuts_util import abstract_NUTS,abstract_GNUTS,abstract_NUTS_xhmc
-from explicit.genleapfrog_ult_util import softabs_map
+import torch
+from abstract.abstract_leapfrog_ult_util import abstract_HMC_alt_ult
 
 #seed=2
 #torch.manual_seed(seed)
@@ -31,7 +24,6 @@ vo = V_logistic_regression()
 #metrico = metric("diag_e",vo)
 #metrico = metric("dense_e",vo)
 metrico = metric("unit_e",vo)
-from abstract.T_unit_e import T_unit_e
 #T_unit_e(metrico,vo)
 #exit()
 #to = T(metrico,vo)
@@ -103,7 +95,7 @@ qpoint_obj = Ho.V.point_generator()
 
 
 # test one step
-from abstract.abstract_leapfrog_ult_util import abstract_HMC_alt_ult,abstract_leapfrog_ult
+from abstract.abstract_leapfrog_ult_util import abstract_HMC_alt_ult
 
 out = abstract_HMC_alt_ult(epsilon=0.1,L=10,current_q=qpoint_obj,leapfrog=abstract_HMC_alt_ult,Ham=Ho)
 

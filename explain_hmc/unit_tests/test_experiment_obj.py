@@ -1,7 +1,4 @@
-import torch
-from distributions.logistic_regression import V_logistic_regression
-import abc, numpy, pickle, os
-from abstract.mcmc_sampler import mcmc_sampler_settings,mcmc_sampler
+from distributions.logistic_regressions.logistic_regression import V_logistic_regression
 from experiments.experiment_obj import tuneinput_class, experiment
 
 #input_dict = {"v_fun":[V_logistic_regression],"alpha":[0],"epsilon":[0.1,0.2,0.3],"second_order":[False],"Cov":[torch.zeros(2)]}

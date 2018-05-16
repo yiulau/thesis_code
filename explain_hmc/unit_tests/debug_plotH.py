@@ -1,15 +1,8 @@
-from distributions.banana_distribution import V_banana
-from distributions.logistic_regression import V_logistic_regression
-from distributions.funnel_cp import V_funnel
 from distributions.eightschool_cp import V_eightschool_cp
-from distributions.eightschool_ncp import V_eightschool_ncp
 import numpy
-import matplotlib.pyplot as plt
 from abstract.metric import metric
 from abstract.abstract_class_Ham import Hamiltonian
-from abstract.abstract_genleapfrog_ult_util import generalized_leapfrog,generalized_leapfrog_softabsdiag
-from abstract.abstract_leapfrog_ult_util import abstract_leapfrog_ult
-from abstract.abstract_nuts_util import abstract_NUTS
+from abstract.abstract_genleapfrog_ult_util import generalized_leapfrog
 import torch
 from post_processing.plot_energy_oscillation import plot_V_T
 # need to plot the two functions on the same graph
@@ -25,7 +18,6 @@ metrico = metric("softabs",vo,alpha=1)
 seed=34
 torch.manual_seed(seed)
 numpy.random.seed(seed)
-from abstract.T_unit_e import T_unit_e
 #T_unit_e(metrico,vo)
 #exit()
 #to = T(metrico,vo)
