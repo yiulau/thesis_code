@@ -11,7 +11,8 @@ class V_pima_inidan_logit(V_logistic_regression):
         X_np = numpy.random.randn(num_ob, dim)
         #print(os.getcwd())
         #exit()
-        address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
+
+        address = "/home/yiulau/work/thesis_code/explain_hmc/input_data/pima_india.csv"
         df = pd.read_csv(address, header=0, sep=" ")
         # print(df)
         dfm = df.as_matrix()

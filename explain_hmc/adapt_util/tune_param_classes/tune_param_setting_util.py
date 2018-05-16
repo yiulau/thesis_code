@@ -15,17 +15,18 @@ def opt_default_arguments(name_list,par_type,bounds_list=None):
     # if leave bounds undefined it will be initiated by default
     # either leave all bounds out or provide all of them
     if bounds_list is None:
-        output = {"obj_fun":"ESJD","par_type":par_type,"name":"opt","params":tuple(name_list)}
+        output = {"obj_fun":"ESJD","par_type":par_type,"name":"opt","params_tuple":tuple(name_list)}
     else:
         assert len(name_list)==len(bounds_list)
-        output = {"obj_fun":"ESJD","par_type":par_type,"name":"opt","params":tuple(name_list),
-                  "bounds":tuple(bounds_list)}
+        output = {"obj_fun":"ESJD","par_type":par_type,"name":"opt","params_tuple":tuple(name_list),
+                  "bounds_tuple":tuple(bounds_list)}
     return(output)
-
+def adapt_cov_default_arguments(par_type):
+    return({"par_type":par_type,"name":"cov"})
 def other_default_arguments():
     output = {"maximum_second_per_sample":0.5}
     return(output)
-def tuning_settings(dual_arguments,opt_arguments,other_arguments):
+def tuning_settings(dual_arguments,opt_arguments,adapt_cov_arguments,other_arguments):
 
 
     fast_tune_setting_dict = {"dual":[],"opt":[]}
@@ -35,25 +36,36 @@ def tuning_settings(dual_arguments,opt_arguments,other_arguments):
     for obj in dual_arguments:
         if obj["par_type"]=="fast":
             fast_tune_setting_dict["dual"].append(obj)
-        if obj["par_type"]=="medium":
+        elif obj["par_type"]=="medium":
             medium_tune_setting_dict["dual"].append(obj)
-        if obj["par_type"]=="slow":
+        elif obj["par_type"]=="slow":
             slow_tune_setting_dict["dual"].append(obj)
+        else:
+            raise ValueError("should not happen")
         dict_par_name.update({obj["name"]:obj})
 
     for obj in opt_arguments:
         if obj["par_type"]=="fast":
             fast_tune_setting_dict["opt"].append(obj)
-        if obj["par_type"]=="medium":
+        elif obj["par_type"]=="medium":
             medium_tune_setting_dict["opt"].append(obj)
-        if obj["par_type"]=="slow":
+        elif obj["par_type"]=="slow":
             slow_tune_setting_dict["opt"].append(obj)
-
-        for i in len(obj["params"]):
-            if "bounds" in obj:
-                dict_par_name.update({obj["params"]:0,"bounds":obj["bounds"][i]})
-
-
+        else:
+            raise ValueError("should not happen")
+        for i in range(len(obj["params_tuple"])):
+            if "bounds_tuple" in obj:
+                dict_par_name.update({obj["params_tuple"][i]:{"bounds":obj["bounds_list"][i],"par_type":obj["par_type"]}})
+            else:
+                dict_par_name.update({obj["params_tuple"][i]:{"par_type":obj["par_type"]}})
+    for obj in adapt_cov_arguments:
+        if obj["par_type"]=="medium":
+            medium_tune_setting_dict["adapt_cov"].append(obj)
+        elif obj["par_type"]=="slow":
+            slow_tune_setting_dict["adapt_cov"].append(obj)
+        else:
+            raise ValueError("should not happen")
+        dict_par_name.update({"cov":{"par_type":obj["par_type"]}})
 
     others_dict = other_arguments
     dict_par_type = {"fast":fast_tune_setting_dict,"medium":medium_tune_setting_dict,"slow":slow_tune_setting_dict}

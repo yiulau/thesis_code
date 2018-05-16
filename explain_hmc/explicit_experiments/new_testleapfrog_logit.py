@@ -16,7 +16,7 @@ stan_sampling = True
 
 #y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 #X_np = numpy.random.randn(num_ob,dim)
-address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
+address = "/home/yiulau/work/thesis_code/explain_hmc/input_data/pima_india.csv"
 df = pd.read_csv(address,header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()

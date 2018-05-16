@@ -11,8 +11,14 @@ class tune_param_concrete(object):
         self.tune_method = tune_method
         self.par_type = par_type
         self.name = name
-        self.next_refresh_iter = self.update_iter_list[1]
-        self.cur_in_iter_list = 0
+        if not self.par_type=="fixed":
+            print(self.name)
+            print(self.par_type)
+            self.next_refresh_iter = self.update_iter_list[1]
+            self.cur_in_iter_list = 0
+        else:
+            self.next_refresh_iter = None
+            self.cur_in_iter_list = None
         if not par_tune_setting is None:
             self.maximum_second_per_sample = par_tune_setting.get("maximum_second_per_sample",None)
         #print(self.maximum_second_per_sample)
@@ -135,7 +141,7 @@ class evolve_t(tune_param_concrete):
     def find_reasonable_start(self):
         # unit_e unit trajectory length
         out = (self.bounds[0] + self.bounds[1])*0.5
-        return(epsilon)
+        return(out)
 
     def find_bounds(self):
         if self.default_bounds is None:
@@ -176,9 +182,10 @@ class evolve_L(tune_param_concrete):
                 self.default_bounds = par_tune_setting["bounds"]
     def find_reasonable_start(self):
         # unit_e unit trajectory length
-        self.find_bounds()
-        out = round((self.bounds[0]+self.bounds[1])*0.5)
-        return(epsilon)
+        #self.find_bounds()
+        #out = round((self.bounds[0]+self.bounds[1])*0.5)
+        out = 8
+        return(out)
 
     def find_bounds(self):
         if self.default_bounds is None:
@@ -376,8 +383,13 @@ def tune_param_objs_creator(tune_dict,adapter_obj,tune_settings_dict):
         # val could be float/double or adapt,opt
         elif param_name in permitted_par_names:
             tune_method = adapter_obj.tune_method_dict[param_name]
-            par_type = adapter_obj.par_type_dict[param_name]
-            iter_list = adapter_obj.choose_iter_dict[par_type]
+            if tune_method=="fixed":
+                par_type= "fixed"
+                assert adapter_obj.par_type_dict[param_name]==par_type
+                iter_list=[]
+            else:
+                par_type = adapter_obj.par_type_dict[param_name]
+                iter_list = adapter_obj.choose_iter_dict[par_type]
             #print(param_name)
             #print(par_type)
             #print(tune_settings_dict["par_type"]["fast"]["dual"])
@@ -390,7 +402,8 @@ def tune_param_objs_creator(tune_dict,adapter_obj,tune_settings_dict):
 
             elif tune_method=="opt":
                 #par_tune_setting = tune_settings_dict["par_type"][par_type][tune_method][param_name]
-                par_tune_setting.update(tune_settings_dict["par_name"][param_name]["bounds"])
+                print(tune_settings_dict["par_name"][param_name])
+                par_tune_setting.update(tune_settings_dict["par_name"][param_name])
                 par_tune_setting.update(tune_settings_dict["others"])
             elif tune_method=="fixed":
                 par_tune_setting = None

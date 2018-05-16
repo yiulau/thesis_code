@@ -291,11 +291,11 @@ class sampler_metadata(object):
 # tune_dict for each chain should be independent
 class one_chain_obj(object):
     def __init__(self,sampler_obj,init_point,tune_dict,chain_setting,
-                 tune_settings_dict=None,adapter_setting=None):
+                 tune_settings_dict,adapter_setting=None):
         self.chain_setting = chain_setting
         self.store_samples = []
         self.chain_ready = False
-
+        self.tune_settings_dict = tune_settings_dict
 
 
 
@@ -400,6 +400,7 @@ class one_chain_obj(object):
             #print(out.flattened_tensor)
             print("iter is {}".format(counter))
             print("epsilon val {}".format(self.tune_param_objs_dict["epsilon"].get_val()))
+            print("evolve_L val {}".format(self.tune_param_objs_dict["evolve_L"].get_val()))
             print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
         exit()
         return()

@@ -16,8 +16,14 @@ class adapter_class(object):
         # medium = tuned by dual or opt. update every window_size
         # slow = tuned by dual,adapt or opt, update every cur_window_size, which doubles after each update
         # default definitions
-        self.par_type_dict = {"epsilon":"fast","evolve_L": "medium", "evolve_t": "medium", "alpha": "medium", "xhmc_delta": "medium",
-                         "diag_cov": "slow", "cov": "slow"}
+        # par_type should be determined by setting default parameters
+        self.par_type_dict = {}
+        for param,obj in self.one_chain_experiment.tune_settings_dict["par_name"].items():
+            self.par_type_dict.update({param:obj["par_type"]})
+
+        self.permitted_tune_params = ("epsilon","evolve_L","evolve_t","alpha","xhmc_delta","cov")
+        #self.par_type_dict = {"epsilon":"fast","evolve_L": "medium", "evolve_t": "medium", "alpha": "medium", "xhmc_delta": "medium",
+        #                 "diag_cov": "slow", "cov": "slow"}
         #print(one_chain_obj.tune_dict.keys())
         #print(one_chain_obj.tune_dict)
         #exit()
@@ -50,14 +56,20 @@ class adapter_class(object):
         self.tune_method_dict = {}
         for param,val in one_chain_obj.tune_dict.items():
             #print(val)
-            if not val=="opt" and not val=="dual" and not val is None:
-                self.tune_method_dict.update({param:"fixed"})
-            elif val=="opt" or val=="dual":
-                self.tune_method_dict.update({param:val})
+            if param in self.permitted_tune_params:
+                if not val=="opt" and not val=="dual" and not val is None:
+                    self.tune_method_dict.update({param:"fixed"})
+                    self.par_type_dict.update({param:"fixed"})
+                elif val=="opt" or val=="dual":
+                    self.tune_method_dict.update({param:val})
 
         #print(self.tune_method_dict)
-        if self.tune_method_dict["epsilon"]=="opt":
-            self.par_type_dict.update({"epsilon":"medium"})
+        #if self.tune_method_dict["epsilon"]=="opt":
+        #    print(self.par_type_dict)
+        #    exit()
+        #    raise ValueError("fix this")
+
+        #    self.par_type_dict.update({"epsilon":"medium"})
 
         #print(self.par_type_dict)
 
@@ -95,8 +107,12 @@ class adapter_class(object):
                 elif par_type == "slow":
                     self.slow_dict.update({param:tune_method})
                     self.tune_slow = True
+                elif par_type == "fixed":
+                    pass
                 else:
                     raise ValueError("unknow par type")
+
+                #assert self.par_type_dict[param] == self.one_chain_experiment.tune_settings_dict["par_name"][param]["par_type"]
 
         self.adapter_meta = adapter_metadata(self.one_chain_experiment.chain_setting,
                                              self.tune_fast, self.tune_medium, self.tune_slow)
@@ -111,6 +127,7 @@ class adapter_class(object):
             self.update_slow_list = self.choose_iter_dict["slow"]
             #print(self.choose_iter_dict)
             #exit()
+
 
 
 
