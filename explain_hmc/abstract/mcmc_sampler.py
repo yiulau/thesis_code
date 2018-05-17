@@ -25,21 +25,22 @@ from adapt_util.tune_param_classes.tune_param_setting_util import default_adapte
 # integration time t is also a slow parameter, because diagnostics (ESS) for its performance can only be calculated by looking
 # at a number of samples
 
-def mcmc_sampler_settings_dict(mcmc_id,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,warmup_per_chain=1000,is_float=False,isstore_to_disk=False,same_init=False):
+def mcmc_sampler_settings_dict(mcmc_id,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5,warmup_per_chain=1000,is_float=False,isstore_to_disk=False,same_init=False):
         # mcmc_id should be a dictionary
         out = {}
         out.update({"num_chains":num_chains,"num_cpu":num_cpu,"thin":thin,"warmup_per_chain":warmup_per_chain})
         out.update({"is_float":is_float,"isstore_to_disk":isstore_to_disk,"mcmc_id":mcmc_id})
-        out.update({"num_samples_per_chain":samples_per_chain,"same_init":same_init})
+        out.update({"num_samples_per_chain":samples_per_chain,"same_init":same_init,"tune_l_per_chain":tune_l_per_chain})
         return(out)
 class mcmc_sampler_settings(object):
-    def __init__(self,mcmc_id,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,warmup_per_chain=1000,is_float=False,isstore_to_disk=False,same_init=False):
+    def __init__(self,mcmc_id,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,warmup_per_chain=5,tune_l_per_chain=1000,is_float=False,isstore_to_disk=False,same_init=False):
 
         # mcmc_id should be a dictionary
         self.num_chains = num_chains
         self.num_cpu = num_cpu
         self.thin = thin
         self.warmup_per_chain = warmup_per_chain
+        self.tune_l_per_chain = tune_l_per_chain
         self.is_float = is_float
         self.isstore_to_disk = isstore_to_disk
         self.mcmc_id = mcmc_id
@@ -85,6 +86,7 @@ class mcmc_sampler(object):
         self.num_samples_per_chain = self.mcmc_settings_dict["num_samples_per_chain"]
         self.isstore_to_disk = self.mcmc_settings_dict["isstore_to_disk"]
         self.warmup_per_chain = self.mcmc_settings_dict["warmup_per_chain"]
+        self.tune_l_per_chain = self.mcmc_settings_dict["tune_l_per_chain"]
         for i in range(self.num_chains):
             #if same_init:
              #   initialization_obj = initialization()
@@ -95,7 +97,7 @@ class mcmc_sampler(object):
             this_chain_setting = one_chain_settings_dict(sampler_id=self.sampler_id,chain_id=i,
                                                      experiment_id=self.experiment_id,
                                                      num_samples=self.num_samples_per_chain,
-                                                     tune_l=self.warmup_per_chain)
+                                                     warm_up=self.warmup_per_chain,tune_l=self.tune_l_per_chain)
             this_tune_dict = self.tune_dict.copy()
             this_chain_obj = one_chain_obj(sampler_obj=self,init_point=self.init_q_point_list[i],
                                            tune_dict=self.tune_dict,chain_setting=this_chain_setting,
@@ -225,39 +227,39 @@ class sampler_metadata(object):
         self.total_time += self.start_time - time.time()
 
     def diagnostics(self):
-        warm_up_time_list = []
+        tune_l_time_list = []
         fixed_tune_time_list = []
-        num_warm_up_iter_list = []
+        num_tune_l_iter_list = []
         num_fixed_tune_iter_list = []
         for chain in self.mcmc_sampler_obj.store_chains:
             chain_obj = chain["chain_obj"]
-            warm_up_time_this_chain_list = [0]*chain_obj.chain_setting["num_samples"]
+            tune_l_time_this_chain_list = [0]*chain_obj.chain_setting["num_samples"]
             fixed_tune_time_this_chain_list = [0]*chain_obj.chain_setting["num_samples"]
-            num_warm_up_iter_this_chain = chain_obj.adapter.adapter_setting["tune_l"]
-            num_fixed_tune_this_chain = chain_obj.chain_setting["num_samples"] - num_warm_up_iter_this_chain
-            for i in range(num_warm_up_iter_this_chain):
-                warm_up_time_this_chain_list[i] = chain_obj.stores_samples[i]["log_obj"].time_since_creation
-            for i in range(num_warm_up_iter_this_chain, num_warm_up_iter_this_chain + num_fixed_tune_this_chain):
+            num_tune_l_iter_this_chain = chain_obj.adapter.adapter_setting["tune_l"]
+            num_fixed_tune_this_chain = chain_obj.chain_setting["num_samples"] - num_tune_l_iter_this_chain
+            for i in range(num_tune_l_iter_this_chain):
+                tune_l_time_this_chain_list[i] = chain_obj.stores_samples[i]["log_obj"].time_since_creation
+            for i in range(num_tune_l_iter_this_chain, num_tune_l_iter_this_chain + num_fixed_tune_this_chain):
                 fixed_tune_time_this_chain_list[i] = chain_obj.stores_samples[i]["log_obj"].time_since_creation
 
-            warm_up_time_list.append(warm_up_time_this_chain_list)
+            tune_l_time_list.append(tune_l_time_this_chain_list)
             fixed_tune_time_list.append(fixed_tune_time_this_chain_list)
-            num_warm_up_iter_list.append(num_warm_up_iter_this_chain)
+            num_tune_l_iter_list.append(num_tune_l_iter_this_chain)
             num_fixed_tune_iter_list.append(num_fixed_tune_this_chain)
 
-        total_warm_up_time = 0
+        total_tune_l_time = 0
         total_fixed_tune_time = 0
-        total_warm_up_iter = 0
+        total_tune_l_iter = 0
         total_fixed_tune_iter = 0
         for i in range(self.mcmc_sampler_obj.num_chains):
-            total_warm_up_time += sum(warm_up_time_list[i])
+            total_tune_l_time += sum(tune_l_time_list[i])
             total_fixed_tune_time += sum(fixed_tune_time_list[i])
-            total_warm_up_iter += num_warm_up_iter_list[i]
+            total_tune_l_iter += num_tune_l_iter_list[i]
             total_fixed_tune_iter +=num_fixed_tune_iter_list[i]
 
-        out = {"total_warm_up_time":total_warm_up_time,"total_fixed_tune_time":total_fixed_tune_time}
-        out.update({"total_warm_up_iter":total_warm_up_iter,"total_fixed_tune_iter":total_fixed_tune_iter})
-        out.update({"warm_up_time_list":warm_up_time_list,"fixed_tune_time_list":fixed_tune_time_list})
+        out = {"total_tune_l_time":total_tune_l_time,"total_fixed_tune_time":total_fixed_tune_time}
+        out.update({"total_tune_l_iter":total_tune_l_iter,"total_fixed_tune_iter":total_fixed_tune_iter})
+        out.update({"tune_l_time_list":tune_l_time_list,"fixed_tune_time_list":fixed_tune_time_list})
         return(out)
     def get_num_samples(self):
         sum = 0
@@ -459,7 +461,7 @@ class initialization(object):
 #     #def clone(self):
 
 
-def one_chain_settings_dict(sampler_id,chain_id,num_samples=10,thin=1,experiment_id=None,tune_l=5):
+def one_chain_settings_dict(sampler_id,chain_id,num_samples=10,thin=1,experiment_id=None,tune_l=5,warm_up=5):
 
         # one for every chain. in everything sampling object, in every experiment
         # parallel chains sampling from the same distribution shares sampling_obj
@@ -469,7 +471,7 @@ def one_chain_settings_dict(sampler_id,chain_id,num_samples=10,thin=1,experiment
         # thin an integer >=0 skips
         # period for saving samples
         out = {"experiment_id":experiment_id,"sampler_id":sampler_id,"chain_id":chain_id}
-        out.update({"num_samples":num_samples,"thin":thin,"tune_l":tune_l})
+        out.update({"num_samples":num_samples,"thin":thin,"tune_l":tune_l,"warm_up":warm_up})
 
         return(out)
 

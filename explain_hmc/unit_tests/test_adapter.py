@@ -3,9 +3,9 @@ from distributions.logistic_regressions.pima_indian_logisitic_regression import 
 from experiments.experiment_obj import tuneinput_class
 from adapt_util.tune_param_classes.tune_param_setting_util import *
 
-mcmc_meta1 = mcmc_sampler_settings(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,
+mcmc_meta1 = mcmc_sampler_settings(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5,
                                    warmup_per_chain=1000,is_float=False,isstore_to_disk=False)
-mcmc_meta2 = mcmc_sampler_settings_dict(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,
+mcmc_meta2 = mcmc_sampler_settings_dict(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5,
                                    warmup_per_chain=1000,is_float=False,isstore_to_disk=False)
 
 

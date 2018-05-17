@@ -1,4 +1,4 @@
-from abstract_class_V import V
+from abstract.abstract_class_V import V
 import torch
 import torch.nn as nn
 from torch.autograd import Variable, Function
@@ -20,7 +20,7 @@ class V_test_abstract(V):
         self.X = Variable(torch.from_numpy(X),requires_grad=False)
         self.layer1 = nn.Linear(self.X.shape[1],lay1_num)
         self.layer2 = nn.Linear(self.lay1_num,self.lay2_num)
-        self.target = target
+        self.target = Variable(torch.from_numpy(target),requires_grad=False)
 
         return()
 
@@ -31,24 +31,22 @@ class V_test_abstract(V):
         else:
             input_data = Variable(torch.from_numpy(X),requires_grad=False)
             target = Variable(torch.from_numpy(y),requires_grad=False)
+
         out = Function.relu(self.layer1(input_data))
         out = self.layer2(out)
-        criterion = nn.MSELoss()
-        loss = criterion(out,target)
+        criterion = nn.NLLLoss
+        loss = criterion(out, target)
         return(loss)
 
     def p_y_given_theta(self,observed_point,posterior_point):
         self.load_point(posterior_point)
         out = self.forward(input=observed_point)
-        out = torch.exp(-out*0.5)
+        out = torch.exp(-out)
         return(out.data[0])
     def log_p_y_given_theta(self,observed_point,posterior_point):
         self.load_point(posterior_point)
-        out = -self.forward(input=observed_point)*0.5
-
-        return(out.data[0])
-
-
+        out = -self.forward(input=observed_point)
+        return(out)
     def output_desired_data(self):
         out = torch.zeros(len(self.beta))
         x_raw = self.beta[:(self.n - 1)]
