@@ -41,7 +41,8 @@ if stan_sampling:
 
     fit = mod.sampling(data=data, refresh=0)
 
-exit()
+correct_samples = fit.extract(permuted=True)["beta"]
+
 y = Variable(torch.from_numpy(y_np).float(),requires_grad=False)
 
 X = Variable(torch.from_numpy(X_np).float(),requires_grad=False)
