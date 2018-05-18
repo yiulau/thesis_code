@@ -12,6 +12,7 @@ def generate_momentum_wrap(metric,var_vec=None,Cov=None,V=None,alpha=None):
         def generate(q):
             return(torch.randn(len(q)) * inv_sd)
     elif (metric =="dense_e"):
+        #print(Cov)
         L = torch.potrf(Cov,upper=False)
         L_inv = torch.inverse(L)
         def generate(q):

@@ -1,10 +1,16 @@
 import abc, numpy, pickle, os
 from abstract.mcmc_sampler import mcmc_sampler_settings,mcmc_sampler
-
+def experiment_setting_dict(chain_length):
+    out = {"chain_length":chain_length}
+    return(out)
+def resume_experiment():
+    experiment_obj = pickle.load(open('save_experiment.pkl', 'rb'))
+    experiment_obj.run()
+    return()
 class experiment(object):
     #__metaclass__ = abc.ABCMeta
 
-    def __init__(self,input_object=None,experiment_metaobj=None):
+    def __init__(self,input_object=None,experiment_setting=None):
 
 
         self.input_object = input_object
@@ -21,7 +27,7 @@ class experiment(object):
             self.multi_index_to_id.update({it.multi_index: cur})
             tune_dict = self.tune_param_grid[it.multi_index]
             sampling_metaobj = mcmc_sampler_settings(mcmc_id = cur)
-            grid_pt_metadict = {"mcmc_id":cur}
+            grid_pt_metadict = {"mcmc_id":cur,"started":False,"completed":False,"saved":False}
             self.store_grid_obj[it.multi_index] = {"sampler":mcmc_sampler(tune_dict,sampling_metaobj),"metadata":grid_pt_metadict}
             it.iternext()
             cur +=1
@@ -36,8 +42,8 @@ class experiment(object):
     # 4 estimated total coputing time (if parallel, given number of agents)
     # 5 ave number of time per leapfrog
 
-        experiment_meta_obj = experiment_meta(chain_length=test_run_chain_length)
-        temp_experiment = self.experiment.clone(experiment_meta_obj)
+        experiment_setting = experiment_setting_dict(chain_length=test_run_chain_length)
+        temp_experiment = self.experiment.clone()
 
         temp_output = temp_experiment.run()
         out = {}
@@ -61,14 +67,43 @@ class experiment(object):
     def run(self):
         it = numpy.nditer(self.store_grid_obj, flags=['multi_index', "refs_ok"])
         while not it.finished:
+            #self.store_grid_obj[it.multi_index]["metadata"]
             sampler = self.store_grid_obj[it.multi_index]["sampler"]
+            self.store_grid_obj[it.multi_index]["metadata"].update({"started": True})
             result = sampler.start_sampling()
-            self.store_grid_obj[it.multi_index].update({"result":result})
+            self.store_grid_obj[it.multi_index].update({"result": result})
+            self.store_grid_obj[it.multi_index]["metadata"].update({"completed": True,"saved":True})
+            self.saves_progress()
             it.iternext()
         return()
 
+    def run_specific(self,list_of_multi_index_id=None,list_mcmc_id=None):
+        assert not list_of_multi_index_id is None or not list_mcmc_id is None
+        if list_of_multi_index_id is None:
+            is_mcmc_id = True
+            id_list = list_mcmc_id
+        else:
+            is_mcmc_id = False
+            id_list = list_of_multi_index_id
+        for id in id_list:
+            if is_mcmc_id:
+                input_id = self.id_to_multi_index[id]
+            else:
+                input_id = id
+            sampler = self.store_grid_obj[input_id]["sampler"]
+            self.store_grid_obj[input_id]["metadata"].update({"started":True})
+            result = sampler.start_sampling()
+            self.store_grid_obj[input_id].update({"result": result})
+            self.store_grid_obj[input_id]["metadata"].update({"completed": True,"saved":True})
+            self.saves_progress()
+
     def clone(self):
-        out = experiment(self.experiment_metaobj,self.input_object.clone())
+        # clone experiment object at pre-sampling state
+        out = experiment(input_object=self.input_object.clone(),experiment_setting=self.experiment_setting.copy())
+        return(out)
+    def saves_progress(self):
+        with open('save_experiment.pkl', 'wb') as f:
+            pickle.dump(self, f)
 
 
 
@@ -89,9 +124,12 @@ class experiment(object):
 #exit()
 #print(experiment.__dict__)
 
-class experiment_meta(object):
-    def __init__(self,chain_length):
-        self.chain_length = chain_length
+
+
+# class experiment_meta(object):
+#     def __init__(self,chain_length):
+#         self.chain_length = chain_length
+#         self.warmup_per_chain
 
 
 
@@ -173,14 +211,14 @@ class tuneinput_class(object):
 
 
     def clone(self):
+        input_dict = self.input_dict.copy()
         if hasattr(self,"Cov"):
             if not getattr(self,"Cov")=="adapt":
                 copy = getattr(self,"Cov")[0].clone()
+                input_dict["Cov"] = [copy]
 
-        input_dict = self.input_dict.copy()
         #print(input_dict)
 
-        input_dict["Cov"] = [copy]
         out = tuneinput_class(input_dict)
         return(out)
 

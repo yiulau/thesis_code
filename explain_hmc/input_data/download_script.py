@@ -5,6 +5,12 @@ import urllib.request
 import urllib
 import urllib.request
 
+# s&p500 data
+
+url = "https://raw.githubusercontent.com/pymc-devs/pymc3/de1b8c839ec4af4e7ca492cdac70abbc38849623/pymc3/examples/data/SP500.csv"
+
+urllib.request.urlretrieve(url, 'sp500.csv')
+exit()
 
 # heart data
 url = "http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/heart/heart.dat"

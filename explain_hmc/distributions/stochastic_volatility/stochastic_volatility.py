@@ -1,4 +1,4 @@
-from abstract_class_V import V
+from abstract.abstract_class_V import V
 import torch
 import torch.nn as nn
 # can implement but only do gradients
@@ -7,14 +7,15 @@ import torch.nn as nn
 from torch.autograd import Variable
 from explicit.general_util import logsumexp_torch
 
-
-class V_test_abstract(V):
+class V_stochastic_volatility(V):
     def __init__(self):
-        super(V_test_abstract, self).__init__()
+        super(V_stochastic_volatility, self).__init__()
 
-    def V_setup(self,y):
+    def V_setup(self):
+        y = self.input
         self.explicit_gradient = False
         self.need_higherorderderiv = True
+
         self.n = len(y)
         self.dim = self.n + 3
         self.theta = nn.Parameter(torch.zeros(self.dim),requires_grad=True)

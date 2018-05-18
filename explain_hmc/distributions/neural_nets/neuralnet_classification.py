@@ -7,9 +7,9 @@ from torch.autograd import Variable, Function
 # 2 layer regression network
 
 
-class V_test_abstract(V):
+class V_nn_classification(V):
     def __init__(self):
-        super(V_test_abstract, self).__init__()
+        super(V_nn_classification, self).__init__()
 
     def V_setup(self,X,target,lay1_num,lay2_num):
         self.explicit_gradient = False

@@ -55,6 +55,9 @@ def welford(next_sample,sample_counter,m_,m_2,diag):
         m_2 += (next_sample-m_) * delta
     else:
         m_2 += torch.ger((next_sample-m_),delta)
+    print("counter {}".format(sample_counter))
+    print((next_sample-m_))
+    print("m_2 in welford {}".format(m_2))
     return(m_,m_2,sample_counter)
 
 
@@ -118,6 +121,7 @@ def full_adapt(metric,sampler_onestep,generate_momentum,H_fun,V,integrator,q,
                     counter_ep += 1
                     q.data = out[0].data
                     m_, m_2, counter_cov = welford(q.data, counter_cov, m_, m_2, True)
+                    print("m_2 {}".format(m_2))
                     generate_momentum,H_fun=update_metric(generate_momentum,V,m_2.clone(),metric)
                     if not i == tune_l - end_buffer-1:
                         m_.zero()
