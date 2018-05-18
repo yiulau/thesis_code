@@ -4,8 +4,8 @@ import torchvision
 import torchvision.transforms as transforms
 
 # Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = torch.device("cpu")
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = torch.device("cpu")
 # Hyper-parameters
 sequence_length = 28
 input_size = 28
@@ -47,8 +47,8 @@ class RNN(nn.Module):
 
     def forward(self, x):
         # Set initial hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+        h0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+        c0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
 
         # Forward propagate LSTM
         out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
@@ -58,21 +58,26 @@ class RNN(nn.Module):
         return out
 
 for i, (images, labels) in enumerate(train_loader):
-    images = images.reshape(-1, sequence_length, input_size).to(device)
-    labels = labels.to(device)
+    images = images.view(-1, sequence_length, input_size)
+    labels = labels
 print(images.shape)
 print(labels.shape)
 
-model = RNN(input_size, hidden_size, num_layers, num_classes).to(device)
+model = RNN(input_size, hidden_size, num_layers, num_classes)
 
-print(model.named_parameters())
-exit()
+#print(model.named_parameters())
+from torch.autograd import Variable
 indata = images[:100,:,:]
+indata = Variable(indata,requires_grad=False)
+labels = Variable(labels)
+#model(indata)
+#exit()
 criterion = nn.CrossEntropyLoss()
 import time
 for i in range(25):
     start = time.time()
     out = model(indata)
+
     loss = criterion(out, labels)
     loss.backward()
     end_time = time.time()-start
