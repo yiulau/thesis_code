@@ -403,7 +403,7 @@ class one_chain_obj(object):
             #print(out.flattened_tensor)
             print("iter is {}".format(counter))
             print("epsilon val {}".format(self.tune_param_objs_dict["epsilon"].get_val()))
-            print("evolve_L val {}".format(self.tune_param_objs_dict["evolve_L"].get_val()))
+#            print("evolve_L val {}".format(self.tune_param_objs_dict["evolve_L"].get_val()))
             print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
         exit()
         return()

@@ -21,7 +21,7 @@ adapter_setting = default_adapter_setting()
 #input_dict = {"v_fun":[V_logistic_regression],"epsilon":["dual"],"second_order":[False],
 #              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[False],"windowed":[False],"criterion":[None]}
 input_dict = {"v_fun":[V_pima_inidan_logit],"epsilon":[0.1],"second_order":[False],
-              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[False],"windowed":[False],"criterion":[None]}
+              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[True],"criterion":["nuts"],"windowed":[False]}
 
 
 # dual parameters input format
@@ -79,7 +79,7 @@ tune_dict  = tuneinput_class(input_dict).singleton_tune_dict()
 #exit()
 #initialization_obj = initialization(v_obj1)
 #sampler1 = mcmc_sampler(tune_dict=tune_dict,mcmc_meta_obj=mcmc_meta1,tune_settings_dict=tune_settings_dict)
-sampler1 = mcmc_sampler(tune_dict=tune_dict,mcmc_settings_dict=mcmc_meta2,tune_settings_dict=tune_settings_dict)
+sampler1 = mcmc_sampler(tune_dict=tune_dict,mcmc_settings_dict=mcmc_meta2,tune_settings_dict=tuning_settings_dict)
 
 sampler1.prepare_chains()
 

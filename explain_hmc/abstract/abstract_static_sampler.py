@@ -3,7 +3,7 @@ from general_util.time_diagnostics import time_diagnositcs
 from abstract.abstract_genleapfrog_ult_util import gleapfrog_stat
 
 
-def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log_obj=None):
+def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log_obj=None,alpha=None):
     # Input:
     # current_q Pytorch Variable
     # H_fun(q,p,return_float) returns Pytorch Variable or float
@@ -86,7 +86,7 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
     return(return_q,return_p,init_p,return_H,accepted,accept_rate,divergent,num_transitions)
 
 
-def abstract_static_windowed_one_step(epsilon, init_q, Ham,evolve_L=None,evolve_t=None,careful=True,log_obj=None):
+def abstract_static_windowed_one_step(epsilon, init_q, Ham,evolve_L=None,evolve_t=None,careful=True,log_obj=None,alpha=None):
     # evaluate gradient 2*L times
     # evluate H function L times
 

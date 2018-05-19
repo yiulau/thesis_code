@@ -210,7 +210,7 @@ class evolve_L(tune_param_concrete):
         return ()
 
 class alpha(tune_param_concrete):
-    def __init__(self,update_iter_list,tune_method,par_type,tuning_obj,par_tune_setting):
+    def __init__(self,update_iter_list,tune_method,par_type,par_tune_setting):
         #super(alpha, self).__init__(update_iter_list,tune_method,par_type)
         super(alpha, self).__init__(update_iter_list=update_iter_list,tune_method=tune_method,par_type=par_type,
                                     name="alpha",par_tune_setting=par_tune_setting)
@@ -350,7 +350,7 @@ def tune_param_creator(param_name,iter_list,tune_method,par_type,par_tune_settin
     if param_name=="evolve_L":
         out = evolve_L(iter_list,tune_method,par_type,par_tune_setting)
     if param_name=="evolve_t":
-        out = evolve_t(iter_list,tune_method,par_type,par_tune_setting  )
+        out = evolve_t(iter_list,tune_method,par_type,par_tune_setting)
     if param_name=="alpha":
         out = alpha(iter_list, tune_method, par_type,par_tune_setting)
     if param_name=="xhmc_delta":
@@ -414,6 +414,12 @@ def tune_param_objs_creator(tune_dict,adapter_obj,tune_settings_dict):
 
             #print(param_name)
             #print(par_tune_setting)
+            print(param_name)
+            print(iter_list)
+            print(tune_method)
+            print(par_type)
+            print(par_tune_setting)
+
             obj = tune_param_creator(param_name=param_name,iter_list=iter_list,tune_method=tune_method,
                                      par_type=par_type,par_tune_setting=par_tune_setting)
             #obj = tune_param_creator(param_name=param_name,iter_list,tune_method,par_type,par_tune_setting)

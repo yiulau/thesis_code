@@ -22,7 +22,9 @@ class sampler_one_step(object):
         self.criterion = tune_dict["criterion"]
         self.v_obj = self.v_fun()
         self.v_obj.q_point = init_point
-        if hasattr(tune_param_objs_dict,"alpha"):
+
+        #if hasattr(tune_param_objs_dict,"alpha"):
+        if "alpha" in tune_param_objs_dict:
             alpha_val = tune_param_objs_dict["alpha"].get_val()
             self.metric = metric(self.metric_name,self.v_obj,alpha_val)
         else:
@@ -30,9 +32,11 @@ class sampler_one_step(object):
         self.Ham = Hamiltonian(self.v_obj,self.metric)
         #if not self.dynamic:
 
-        if hasattr(tune_param_objs_dict,"evolve_t"):
+        #if hasattr(tune_param_objs_dict,"evolve_t"):
+        if "evolve_t" in tune_param_objs_dict:
             self.input_time=True
-        elif hasattr(tune_param_objs_dict,"evolve_L"):
+        #elif hasattr(tune_param_objs_dict,"evolve_L"):
+        elif "evolve_L" in tune_param_objs_dict:
             self.input_time=False
         else:
             self.input_time=None
@@ -133,6 +137,8 @@ def wrap(raw_sampler_one_step):
             tune_param_dict.update({"log_obj":log_obj})
         tune_param_dict.update({"init_q":input_point_obj})
         tune_param_dict.update({"Ham":Ham_obj})
+        #print(tune_param_dict)
+        #exit()
         return(raw_sampler_one_step(**tune_param_dict))
 
     return(sampler_one_step)

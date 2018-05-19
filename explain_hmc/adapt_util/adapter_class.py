@@ -36,7 +36,11 @@ class adapter_class(object):
         self.dynamic = self.one_chain_experiment.tune_dict["dynamic"]
         self.second_order = self.one_chain_experiment.tune_dict["second_order"]
         self.metric_name = self.one_chain_experiment.tune_dict["metric_name"]
-        self.criterion = self.one_chain_experiment.tune_dict["criterion"]
+        if self.dynamic:
+            self.criterion = self.one_chain_experiment.tune_dict["criterion"]
+        else:
+            self.criterion = None
+            self.one_chain_experiment.tune_dict.update({"criterion":None})
         #self.tuneable_params_name = tuneable_param(self.dynamic,self.second_order,self.metric_name,self.criterion,
         #                                           )
         # unique for individual sampler
