@@ -20,7 +20,7 @@ adapter_setting = default_adapter_setting()
 #v_obj1 = V_logistic_regression()
 #input_dict = {"v_fun":[V_logistic_regression],"epsilon":["dual"],"second_order":[False],
 #              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[False],"windowed":[False],"criterion":[None]}
-input_dict = {"v_fun":[V_pima_inidan_logit],"epsilon":["dual"],"second_order":[False],
+input_dict = {"v_fun":[V_pima_inidan_logit],"epsilon":[0.1],"second_order":[False],
               "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[False],"windowed":[False],"criterion":[None]}
 
 
@@ -50,8 +50,9 @@ dual_arguments = [ep_dual_metadata_argument]
 opt_arguments = []
 other_arguments = other_default_arguments()
 
-tune_settings_dict = tuning_settings(dual_arguments,opt_arguments,other_arguments)
-
+#
+# tune_settings_dict = tuning_settings(dual_arguments,opt_arguments,other_arguments)
+tuning_settings_dict = tuning_settings([],[],[],[])
 
 #print(tune_settings_dict)
 

@@ -18,13 +18,14 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
     # evluate H 1 time
 
 
-    careful = True
     if not evolve_L is None and not evolve_t is None:
         raise ValueError("L contradicts with evol_t")
-    Ham.diagnostics = time_diagnositcs()
+    assert evolve_L is None or evolve_t is None
     if not evolve_t is None:
         assert evolve_L is None
         evolve_L = round(evolve_t/epsilon)
+    careful = True
+    Ham.diagnostics = time_diagnositcs()
     divergent = False
     num_transitions = evolve_L
     q = init_q.point_clone()
@@ -33,13 +34,13 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
     current_H = Ham.evaluate(q,p)
     #print(type(evolve_L))
     #exit()
-    print("epsilon is {}".format(epsilon))
+    #print("epsilon is {}".format(epsilon))
     for i in range(evolve_L):
         q, p, stat = Ham.integrator(q, p, epsilon, Ham)
         divergent = stat.divergent
         if careful:
             temp_H = Ham.evaluate(q, p)
-            print("H is {}".format(temp_H))
+            #print("H is {}".format(temp_H))
             if(abs(temp_H-current_H)>1000 or divergent):
                 return_q = init_q
                 return_H = current_H
@@ -88,13 +89,15 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
 def abstract_static_windowed_one_step(epsilon, init_q, Ham,evolve_L=None,evolve_t=None,careful=True,log_obj=None):
     # evaluate gradient 2*L times
     # evluate H function L times
+
+    assert evolve_L is None or evolve_t is None
     if not evolve_L==None and not evolve_t==None:
         raise ValueError("L contradicts with evol_t")
-    Ham.diagnostics = time_diagnositcs()
+
     if not evolve_t is None:
         assert evolve_L is None
         evolve_L = round(evolve_t/epsilon)
-
+    Ham.diagnostics = time_diagnositcs()
     divergent = False
     num_transitions = evolve_L
     accepted = False

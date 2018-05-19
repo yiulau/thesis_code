@@ -24,20 +24,32 @@ class V_test_abstract(V):
 
         return()
 
-    def forward(self):
+    def log_likelihood(self):
         w = self.beta[:self.dim]
-        lam = torch.exp(self.beta[(self.dim):(2*self.dim)])
-        eta = torch.exp(self.beta[(2*self.dim):(3*self.dim)])
-        tau = torch.exp(self.beta[3*self.dim])
-        sigma = torch.exp(self.beta[3*self.dim+1])
-        outy = (self.y - (self.X.mv(w)))*(self.y - (self.X.mv(w)))/(sigma*sigma) * 0.5
-        outw = (w * w /(eta*eta*tau*tau*lam*lam)).sum() * 0.5
-        out_lam = ((self.nu +1. )*0.5 + torch.log(1+ (1/self.nu)* (lam*lam))).sum()
-        out_eta = ((self.nu +1. )*0.5 + torch.log(1+ (1/self.nu)* (eta*eta))).sum()
-        out_hessian = self.beta[(self.dim):(2 * self.dim)].sum() + self.beta[3 * self.dim + 1] + self.beta[3*self.dim] +\
-                      self.beta[(2*self.dim):(3*self.dim)].sum()
-        out = outy + outw + out_lam + out_eta + out_hessian
+        lam = torch.exp(self.beta[(self.dim):(2 * self.dim)])
+        eta = torch.exp(self.beta[(2 * self.dim):(3 * self.dim)])
+        tau = torch.exp(self.beta[3 * self.dim])
+        sigma = torch.exp(self.beta[3 * self.dim + 1])
+        outy = (self.y - (self.X.mv(w))) * (self.y - (self.X.mv(w))) / (sigma * sigma) * 0.5
+        return(outy)
+
+    def log_prior(self):
+        w = self.beta[:self.dim]
+        lam = torch.exp(self.beta[(self.dim):(2 * self.dim)])
+        eta = torch.exp(self.beta[(2 * self.dim):(3 * self.dim)])
+        tau = torch.exp(self.beta[3 * self.dim])
+        out_lam = ((self.nu + 1.) * 0.5 + torch.log(1 + (1 / self.nu) * (lam * lam))).sum()
+        out_eta = ((self.nu + 1.) * 0.5 + torch.log(1 + (1 / self.nu) * (eta * eta))).sum()
+        out_hessian = self.beta[(self.dim):(2 * self.dim)].sum() + self.beta[3 * self.dim + 1] + self.beta[
+            3 * self.dim] + \
+                      self.beta[(2 * self.dim):(3 * self.dim)].sum()
+    def forward(self):
+
+        out_likelihoood = self.log_likelihood()
+        out_prior = self.log_prior()
+        out = -out_likelihoood - out_prior
         return(out)
+
 
     def load_explcit_gradient(self):
         return()

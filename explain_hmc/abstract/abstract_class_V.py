@@ -365,6 +365,12 @@ class V(nn.Module):
 
         return()
 
+    def prepare_prior(self,prior_dict):
+        if prior_dict["has_hypar"]:
+            prior_dict["create_hypar_fun"](self)
+        return()
+
+
 
 
 

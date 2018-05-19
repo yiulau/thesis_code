@@ -10,7 +10,7 @@ from adapt_util.return_update_list import return_update_lists
 from abstract.integrator import sampler_one_step
 from adapt_util.adapter_class import adapter_class
 from adapt_util.tune_param_classes.tune_param_setting_util import default_adapter_setting
-
+from general_util.memory_util import to_pickle_memory
 # number of samples
 # thinning
 # warm up
@@ -269,10 +269,11 @@ class sampler_metadata(object):
 
     def get_size_mb(self):
         # save to disk. measure volume, then remove stored copy
-        with open("temp_sampler_volume.pkl", 'wb') as f:
-            pickle.dump(self.mcmc_sampler_obj, f)
-        size = os.path.getsize("./temp_sampler_volume.pkl") / (1024. * 1024)
-        os.remove("./temp_sampler_volume.pkl")
+        # with open("temp_sampler_volume.pkl", 'wb') as f:
+        #     pickle.dump(self.mcmc_sampler_obj, f)
+        # size = os.path.getsize("./temp_sampler_volume.pkl") / (1024. * 1024)
+        # os.remove("./temp_sampler_volume.pkl")
+        size = to_pickle_memory(self)
         return(size)
 
 

@@ -1,7 +1,9 @@
-import torch
+import torch,numpy
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+from general_util.memory_util import to_pickle_memory
+from abstract.abstract_class_V import V
 
 # Device configuration
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -16,55 +18,48 @@ batch_size = 100
 num_epochs = 2
 learning_rate = 0.01
 
-# MNIST dataset
-train_dataset = torchvision.datasets.MNIST(root='../../data/',
-                                           train=True,
-                                           transform=transforms.ToTensor(),
-                                           download=True)
+def lstm_fun_generator(dataset,problem_type,num_units_list,activations_list,is_skip_connections):
+    X = dataset["input"]
+    target = dataset["target"]
+    if problem_type == "regression":
+        criterion = nn.MSELoss
+        output_dim = 1
+    elif problem_type == "classification":
+        criterion = nn.NLLLoss
 
-test_dataset = torchvision.datasets.MNIST(root='../../data/',
-                                          train=False,
-                                          transform=transforms.ToTensor())
-
-# Data loader
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=100,
-                                           shuffle=True)
-
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=batch_size,
-                                          shuffle=False)
-
-
+        output_dim = len(numpy.unique(target))
 # Recurrent neural network (many-to-one)
-class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes):
-        super(RNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, num_classes)
+    class RNN(V):
+        def __init__(self, input_size, hidden_size, num_layers, num_classes):
+            super(V, self).__init__()
+            self.hidden_size = hidden_size
+            self.num_layers = num_layers
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, num_classes)
 
-    def forward(self, x):
-        # Set initial hidden and cell states
-        h0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
-        c0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+        def forward(self, x):
+            # Set initial hidden and cell states
+            h0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+            c0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
 
-        # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
+            # Forward propagate LSTM
+            out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
 
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
-        return out
-
-for i, (images, labels) in enumerate(train_loader):
-    images = images.view(-1, sequence_length, input_size)
-    labels = labels
-print(images.shape)
-print(labels.shape)
+            # Decode the hidden state of the last time step
+            out = self.fc(out[:, -1, :])
+            loss = criterion(out, target)
+            return(loss)
+    return(RNN)
+# for i, (images, labels) in enumerate(train_loader):
+#     images = images.view(-1, sequence_length, input_size)
+#     labels = labels
+# print(images.shape)
+# print(labels.shape)
 
 model = RNN(input_size, hidden_size, num_layers, num_classes)
-
+mb_size = to_pickle_memory(model)
+print(mb_size)
+exit()
 #print(model.named_parameters())
 from torch.autograd import Variable
 indata = images[:100,:,:]

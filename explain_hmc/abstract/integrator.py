@@ -29,6 +29,7 @@ class sampler_one_step(object):
             self.metric = metric(self.metric_name,self.v_obj)
         self.Ham = Hamiltonian(self.v_obj,self.metric)
         #if not self.dynamic:
+
         if hasattr(tune_param_objs_dict,"evolve_t"):
             self.input_time=True
         elif hasattr(tune_param_objs_dict,"evolve_L"):
