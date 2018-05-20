@@ -15,7 +15,7 @@ def return_update_lists(adapter_meta,adapter_setting):
     if tune_medium == True:
         min_medium_updates = adapter_setting["min_medium_updates"]
     if tune_slow == True:
-        min_slow_updates = adapter_meta.adapt["min_slow_updates"]
+        min_slow_updates = adapter_setting["min_slow_updates"]
 
 
     #print(window_size,ini_buffer,end_buffer,min_medium_updates,tune_l)

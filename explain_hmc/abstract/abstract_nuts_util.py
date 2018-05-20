@@ -3,19 +3,20 @@ from explicit.general_util import logsumexp, stable_sum
 from general_util.time_diagnostics import time_diagnositcs
 
 
-def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
+def abstract_NUTS(init_q,epsilon,Ham,max_tdepth=5,log_obj=None):
     # input and output are point objects
     Ham.diagnostics = time_diagnositcs()
-    p_init = Ham.T.generate_momentum(q_init)
+    p_init = Ham.T.generate_momentum(init_q)
 
-    q_left = q_init.point_clone()
-    q_right =q_init.point_clone()
+    q_left = init_q.point_clone()
+    q_right =init_q.point_clone()
     p_left = p_init.point_clone()
     p_right = p_init.point_clone()
     j = 0
     num_div = 0
-    q_prop = q_init.point_clone()
-    log_w = -Ham.evaluate(q_init,p_init)
+    q_prop = init_q.point_clone()
+    p_prop = None
+    log_w = -Ham.evaluate(init_q,p_init)
     H_0 = -log_w
     accepted = False
     divergent = False
@@ -47,6 +48,7 @@ def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
         p_prop = None
 
 
+
     if not log_obj is None:
         log_obj.store.update({"prop_H":-log_w})
         log_obj.store.update({"accepted":accepted})
@@ -54,21 +56,22 @@ def abstract_NUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
         log_obj.store.update({"divergent":divergent})
         log_obj.store.update({"tree_depth":j})
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
-def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
+def abstract_GNUTS(init_q,epsilon,Ham,max_tdepth=5,log_obj=None):
     # sum_p should be a tensor instead of variable
 
     Ham.diagnostics = time_diagnositcs()
-    p_init = Ham.T.generate_momentum(q_init)
-    q_left = q_init.point_clone()
-    q_right = q_init.point_clone()
+    p_init = Ham.T.generate_momentum(init_q)
+    q_left = init_q.point_clone()
+    q_right = init_q.point_clone()
     p_left = p_init.point_clone()
     p_right = p_init.point_clone()
-    p_sleft = Ham.p_sharp_fun(q_init, p_init).point_clone()
-    p_sright = Ham.p_sharp_fun(q_init, p_init).point_clone()
+    p_sleft = Ham.p_sharp_fun(init_q, p_init).point_clone()
+    p_sright = Ham.p_sharp_fun(init_q, p_init).point_clone()
     j = 0
     num_div = 0
-    q_prop = q_init.point_clone()
-    log_w = -Ham.evaluate(q_init,p_init)
+    q_prop = init_q.point_clone()
+    p_prop = None
+    log_w = -Ham.evaluate(init_q,p_init)
     H_0 = -log_w
     accepted = False
     divergent = False
@@ -110,22 +113,23 @@ def abstract_GNUTS(q_init,epsilon,Ham,max_tdepth=5,log_obj=None):
         abstract_GNUTS.log_obj.update({"divergent":divergent})
         abstract_GNUTS.log_obj.update({"tree_depth":j})
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
-def abstract_NUTS_xhmc(q_init,epsilon,Ham,xhmc_delta,max_tdepth=5,log_obj=None):
+def abstract_NUTS_xhmc(init_q,epsilon,Ham,xhmc_delta,max_tdepth=5,log_obj=None):
 
     Ham.diagnostics = time_diagnositcs()
-    p_init = Ham.T.generate_momentum(q_init)
-    q_left = q_init.point_clone()
-    q_right = q_init.point_clone()
+    p_init = Ham.T.generate_momentum(init_q)
+    q_left = init_q.point_clone()
+    q_right = init_q.point_clone()
     p_left = p_init.point_clone()
     p_right = p_init.point_clone()
     j = 0
     num_div = 0
-    q_prop = q_init.point_clone()
-    log_w = -Ham.evaluate(q_init,p_init)
+    q_prop = init_q.point_clone()
+    p_prop = None
+    log_w = -Ham.evaluate(init_q,p_init)
     H_0 = -log_w
     accepted = False
     divergent = False
-    ave = Ham.dG_dt(q_init, p_init)
+    ave = Ham.dG_dt(init_q, p_init)
     s = True
     while s:
         v = numpy.random.choice([-1,1])
@@ -163,7 +167,7 @@ def abstract_NUTS_xhmc(q_init,epsilon,Ham,xhmc_delta,max_tdepth=5,log_obj=None):
     return(q_prop,p_prop,p_init,-log_w,accepted,accept_rate,divergent,j)
 def abstract_BuildTree_nuts(q,p,v,j,epsilon,Ham,H_0):
     if j ==0:
-        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
+        q_prime,p_prime,stat = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
 
@@ -200,7 +204,7 @@ def abstract_BuildTree_gnuts(q,p,v,j,epsilon,Ham,H_0):
     #p_sharp_fun(q,p) takes tensor returns tensor
 
     if j ==0:
-        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
+        q_prime,p_prime,stat = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
         if (abs(H_cur - H_0) < 1000):
@@ -240,7 +244,7 @@ def abstract_BuildTree_gnuts(q,p,v,j,epsilon,Ham,H_0):
         return q_left, p_left, q_right, p_right, q_prime,p_prime, s_prime, log_w_prime,sum_p,num_div_prime
 def abstract_BuildTree_nuts_xhmc(q,p,v,j,epsilon,Ham,xhmc_delta,H_0):
     if j ==0:
-        q_prime,p_prime = Ham.integrator(q,p,v*epsilon,Ham)
+        q_prime,p_prime,stat = Ham.integrator(q,p,v*epsilon,Ham)
         log_w_prime = -Ham.evaluate(q_prime, p_prime)
         H_cur = -log_w_prime
         if(abs(H_cur-H_0)<1000):

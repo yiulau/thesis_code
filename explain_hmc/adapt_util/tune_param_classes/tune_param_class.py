@@ -244,7 +244,7 @@ class alpha(tune_param_concrete):
         return ()
 
 class xhmc_delta(tune_param_concrete):
-    def __init__(self, update_iter_list, tune_method, par_type,tuning_obj,par_tune_setting):
+    def __init__(self, update_iter_list, tune_method, par_type,par_tune_setting):
         super(xhmc_delta, self).__init__(update_iter_list=update_iter_list,tune_method=tune_method,par_type=par_type,
                                     name="xhmc_delta",par_tune_setting=par_tune_setting)
         self.update_priority = 4
@@ -379,6 +379,8 @@ def tune_param_objs_creator(tune_dict,adapter_obj,tune_settings_dict):
 
         elif param_name=="cov":
             activate_cov = True
+            #print(adapter_obj.tune_method_dict)
+
         # only these params reach this point ("epsilon", "evolve_L", "evolve_t", "alpha", "xhmc_delta")
         # val could be float/double or adapt,opt
         elif param_name in permitted_par_names:
@@ -428,18 +430,32 @@ def tune_param_objs_creator(tune_dict,adapter_obj,tune_settings_dict):
             params_obj_dict.update({param_name:obj})
 
     if activate_cov:
-        par_type = adapter_obj.par_type_dict["cov"]
-        iter_list = adapter_obj.choose_iter_dict[par_type]
-        cov_tensor = tune_dict["cov"]
-        dim = cov_tensor.shape[0]
-        if cov_type=="dense":
-            obj = tune_param_creator(param_name="dense_cov",iter_list=iter_list,tune_method="adapt_cov",par_type=par_type,par_setting={"dim":dim})
+        tune_method = adapter_obj.tune_method_dict["cov"]
+        #print(adapter_obj.par_type_dict)
+        #exit()
+        if tune_method == "fixed":
+            par_type = "fixed"
+            assert adapter_obj.par_type_dict["cov"] == par_type
+            iter_list = []
+            cov_tensor = tune_dict["cov"]
+            dim = cov_tensor.shape[0]
 
         else:
-            obj = tune_param_creator(param_name="diag_cov",iter_list=iter_list,tune_method="adapt_cov",par_type=par_type,par_setting={"dim":dim})
+            par_type = adapter_obj.par_type_dict["cov"]
+            iter_list = adapter_obj.choose_iter_dict[par_type]
+            dim = adapter_obj.one_chain_experiment.tune_settings_dict["par_name"]["cov"]["dim"]
+        #print("cov_tensor{}".format(cov_tensor))
+        #exit()
+        #dim = cov_tensor.shape[0]
 
-        obj.set_val(cov_tensor)
-        params_obj_dict.update({"cov": obj})
+        if cov_type=="dense":
+            obj = tune_param_creator(param_name="dense_cov",iter_list=iter_list,tune_method="adapt_cov",par_type=par_type,par_tune_setting={"dim":dim})
+
+        elif cov_type=="diag":
+            obj = tune_param_creator(param_name="diag_cov",iter_list=iter_list,tune_method="adapt_cov",par_type=par_type,par_tune_setting={"dim":dim})
+        if tune_method=="fixed":
+            obj.set_val(cov_tensor)
+        params_obj_dict.update({obj.name: obj})
     return(params_obj_dict)
 
 

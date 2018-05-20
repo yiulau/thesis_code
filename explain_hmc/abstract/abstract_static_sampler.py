@@ -21,6 +21,7 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
     if not evolve_L is None and not evolve_t is None:
         raise ValueError("L contradicts with evol_t")
     assert evolve_L is None or evolve_t is None
+    assert not (evolve_L is None and evolve_t is None)
     if not evolve_t is None:
         assert evolve_L is None
         evolve_L = round(evolve_t/epsilon)

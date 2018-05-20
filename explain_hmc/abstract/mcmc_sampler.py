@@ -313,9 +313,9 @@ class one_chain_obj(object):
         #print(adapter_setting is None)
         #exit()
         if adapter_setting is None:
-            self.adapter = adapter_class(self)
+            self.adapter = adapter_class(one_chain_obj=self)
         else:
-            self.adapter = adapter_class(self,adapter_setting)
+            self.adapter = adapter_class(one_chain_obj=self,adapter_setting=adapter_setting)
 
 
         self.tune_param_objs_dict = tune_param_objs_creator(tune_dict=tune_dict,adapter_obj=self.adapter,
@@ -391,25 +391,25 @@ class one_chain_obj(object):
 
             out = self.sampler_one_step.run()
             #self.adapter.log_obj = self.log_obj
-            sample_obj = {"q":out,"iter":counter,"log":self.log_obj.snapshot()}
+            sample_dict = {"q":out,"iter":counter,"log":self.log_obj.snapshot()}
             if keep:
-                self.add_sample(sample_obj=sample_obj)
+                self.add_sample(sample_dict=sample_dict)
                 if self.is_to_disk_now(counter):
                     self.store_to_disk()
             if counter < self.chain_setting["tune_l"]:
                 out.iter = counter
-                self.adapt(sample_obj)
+                self.adapt(sample_dict)
             #print("tune_l is {}".format(self.chain_setting["tune_l"]))
             #print(out.flattened_tensor)
             print("iter is {}".format(counter))
             print("epsilon val {}".format(self.tune_param_objs_dict["epsilon"].get_val()))
 #            print("evolve_L val {}".format(self.tune_param_objs_dict["evolve_L"].get_val()))
-            print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
+#            print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
         exit()
         return()
-    def add_sample(self,sample_obj):
+    def add_sample(self,sample_dict):
         #print(self.log_obj.store)
-        self.store_samples.append(sample_obj)
+        self.store_samples.append(sample_dict)
 
     def is_to_disk_now(self,counter):
         return(False)

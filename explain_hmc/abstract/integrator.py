@@ -86,27 +86,22 @@ class sampler_one_step(object):
 
 
     def generate_sampler_one_step(self):
-        if self.second_order:
-            if self.dynamic:
-                if self.criterion == "nuts":
-                    out = abstract_NUTS
-                elif self.criterion == "gnuts":
-                    out = abstract_GNUTS
+        if self.dynamic:
+            if self.criterion == "nuts":
+                out = abstract_NUTS
+            elif self.criterion == "gnuts":
+                out = abstract_GNUTS
 
-                elif self.criterion == "xhmc":
-                    out = abstract_NUTS_xhmc
-                else:
-                    raise ValueError("unknown criterion")
+            elif self.criterion == "xhmc":
+                out = abstract_NUTS_xhmc
             else:
-                if self.windowed:
-                    out = abstract_static_windowed_one_step
-                else:
-                    out = abstract_static_one_step
+                raise ValueError("unknown criterion")
         else:
             if self.windowed:
                 out = abstract_static_windowed_one_step
             else:
                 out = abstract_static_one_step
+
 
         tuneable_par = tuneable_param(self.dynamic, self.second_order, self.metric_name, self.criterion, self.input_time)
 
@@ -131,14 +126,17 @@ def wrap(raw_sampler_one_step):
     def sampler_one_step(input_point_obj,Ham_obj,tune_param_objs_dict,log_obj=None):
         # tune_param_objs_dict contains tuning parameter objects for this integrator
         tune_param_dict = {}
+        sampler_permissible_tune_parm = ("epsilon","evolve_t","evolve_L")
         for param_name,obj in tune_param_objs_dict.items():
-            tune_param_dict.update({param_name:obj.get_val()})
+            if param_name in sampler_permissible_tune_parm:
+                tune_param_dict.update({param_name:obj.get_val()})
         if not log_obj is None:
             tune_param_dict.update({"log_obj":log_obj})
         tune_param_dict.update({"init_q":input_point_obj})
         tune_param_dict.update({"Ham":Ham_obj})
         #print(tune_param_dict)
         #exit()
+
         return(raw_sampler_one_step(**tune_param_dict))
 
     return(sampler_one_step)

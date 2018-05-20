@@ -249,6 +249,7 @@ def m(window_size=25,min_medium_updates=5,tune_l=250):
 # if case==1:
     slow_window_size = window_size
     min_length = window_size * (round(min_medium_updates *(1.75)))
+    #print("tune_l {}".format(tune_l))
 
     if tune_l < min_length:
         raise ValueError("warm up not long enough")

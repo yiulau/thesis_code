@@ -43,8 +43,8 @@ class dual_state(object):
 
 
 
-    def update(self,sample_obj):
-        iter = sample_obj["iter"]
+    def update(self,sample_dict):
+        iter = sample_dict["iter"]
         #print("iter is {}".format(iter))
         if iter < self.start_iter:
             pass
@@ -54,11 +54,11 @@ class dual_state(object):
             self.initialize()
             self.cur_in_iter_list += 1
         elif iter < self.next_refresh_iter:
-            self.store_samples.append(sample_obj)
+            self.store_samples.append(sample_dict)
 
         elif iter == self.next_refresh_iter:
             print("reach here ")
-            self.store_samples.append(sample_obj)
+            self.store_samples.append(sample_dict)
             for param, obj in self.dual_param_objs_dict.items():
                 #print(self.store_samples[0])
                 #print(sample_obj["log"].keys())
@@ -203,8 +203,8 @@ class gpyopt_state(object):
         for i in range(self.name_list):
             out_dict.update({self.name_list[i]:bo_step[i]})
         return(out_dict)
-    def update(self,sample_obj):
-        iter = sample_obj.iter
+    def update(self,sample_dict):
+        iter = sample_dict["iter"]
         if iter < self.start_iter:
             pass
         if iter >= self.end_iter:
@@ -213,9 +213,9 @@ class gpyopt_state(object):
             self.initialize()
             self.cur_in_iter_list += 1
         if iter < self.next_refresh_iter:
-            self.store_samples.append(sample_obj)
+            self.store_samples.append(sample_dict)
         if iter == self.next_refresh_iter:
-            self.store_samples.append(sample_obj)
+            self.store_samples.append(sample_dict)
             objective = self.compute_objective()
             self.store_objective.append(objective)
             # do not need to explore next point if we are on our last point
@@ -240,11 +240,14 @@ class gpyopt_state(object):
 class adapt_cov_state(object):
     # only initialize when opt_dict not empty . upstream decision
     def __init__(self,update_iter_list,adapt_cov_param_objs_dict):
-
+        #print(update_iter_list)
+        #print(adapt_cov_param_objs_dict)
+        #print(list(adapt_cov_param_objs_dict.items())[0])
+        #exit()
         self.update_iter_list = update_iter_list
         self.cur_in_iter_list = None
         # opt_dict should be sorted by update priorities
-        self.param_name,self.param_obj = list(adapt_cov_param_objs_dict.items())
+        self.param_name,self.param_obj = list(adapt_cov_param_objs_dict.items())[0]
         self.start_iter = self.update_iter_list[0]
         self.end_iter = self.update_iter_list[-1]
 
@@ -260,17 +263,18 @@ class adapt_cov_state(object):
         self.next_refresh_iter = self.update_iter_list[1]
         self.cur_in_iter_list = 0
         self.iter = 0
-    def update_cov(self,sample_obj):
+    def update_cov(self,sample_dict):
         self.iter +=1
-        self.m_, self.m_2 = welford_tensor(sample_obj.q.flattened_tensor,self.iter,self.m_, self.m_2, self.diag)
+        self.m_, self.m_2 = welford_tensor(sample_dict["q"].flattened_tensor,self.iter,self.m_, self.m_2, self.diag)
         return()
     def refresh_cov(self):
         self.m_.zero_()
         self.m_2.zero_()
         self.iter = 0
         return()
-    def update(self,sample_obj):
-        iter = sample_obj.iter
+    def update(self,sample_dict):
+
+        iter = sample_dict["iter"]
         if iter < self.start_iter:
             pass
         if iter >= self.end_iter:
@@ -281,7 +285,7 @@ class adapt_cov_state(object):
         if iter < self.next_refresh_iter:
             pass
         if iter == self.next_refresh_iter:
-            self.update_cov(sample_obj)
+            self.update_cov(sample_dict)
             #self.tuning_obj.integrator.set_metric(self.m_2)
             self.param_obj.set_val(self.m_2)
             # do not need to explore next point if we are on our last point

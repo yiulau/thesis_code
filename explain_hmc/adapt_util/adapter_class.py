@@ -21,6 +21,7 @@ class adapter_class(object):
         for param,obj in self.one_chain_experiment.tune_settings_dict["par_name"].items():
             self.par_type_dict.update({param:obj["par_type"]})
 
+
         self.permitted_tune_params = ("epsilon","evolve_L","evolve_t","alpha","xhmc_delta","cov")
         #self.par_type_dict = {"epsilon":"fast","evolve_L": "medium", "evolve_t": "medium", "alpha": "medium", "xhmc_delta": "medium",
         #                 "diag_cov": "slow", "cov": "slow"}
@@ -61,11 +62,18 @@ class adapter_class(object):
         for param,val in one_chain_obj.tune_dict.items():
             #print(val)
             if param in self.permitted_tune_params:
-                if not val=="opt" and not val=="dual" and not val is None:
-                    self.tune_method_dict.update({param:"fixed"})
-                    self.par_type_dict.update({param:"fixed"})
-                elif val=="opt" or val=="dual":
-                    self.tune_method_dict.update({param:val})
+                if param=="cov":
+                    if val == "adapt":
+                        self.tune_method_dict.update({param:val})
+                    else:
+                        self.tune_method_dict.update({param: "fixed"})
+                        self.par_type_dict.update({param: "fixed"})
+                else:
+                    if not val=="opt" and not val=="dual" and not val is None:
+                        self.tune_method_dict.update({param:"fixed"})
+                        self.par_type_dict.update({param:"fixed"})
+                    elif val=="opt" or val=="dual":
+                        self.tune_method_dict.update({param:val})
 
         #print(self.tune_method_dict)
         #if self.tune_method_dict["epsilon"]=="opt":
@@ -82,7 +90,7 @@ class adapter_class(object):
         self.slow_dict = {}
         self.dual_dict = {}
         self.opt_dict = {}
-        self.adpat_dict = {}
+        self.adapt_dict = {}
         self.tune_fast = False
         self.tune_medium = False
         self.tune_slow = False

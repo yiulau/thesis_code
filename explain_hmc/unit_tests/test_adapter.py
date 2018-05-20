@@ -2,10 +2,10 @@ from abstract.mcmc_sampler import mcmc_sampler,mcmc_sampler_settings,mcmc_sample
 from distributions.logistic_regressions.pima_indian_logisitic_regression import V_pima_inidan_logit
 from experiments.experiment_obj import tuneinput_class
 from adapt_util.tune_param_classes.tune_param_setting_util import *
-
+import torch
 mcmc_meta1 = mcmc_sampler_settings(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5,
                                    warmup_per_chain=1000,is_float=False,isstore_to_disk=False)
-mcmc_meta2 = mcmc_sampler_settings_dict(mcmc_id=0,samples_per_chain=10,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5,
+mcmc_meta2 = mcmc_sampler_settings_dict(mcmc_id=0,samples_per_chain=10000,num_chains=4,num_cpu=1,thin=1,tune_l_per_chain=5000,
                                    warmup_per_chain=1000,is_float=False,isstore_to_disk=False)
 
 
@@ -20,8 +20,9 @@ adapter_setting = default_adapter_setting()
 #v_obj1 = V_logistic_regression()
 #input_dict = {"v_fun":[V_logistic_regression],"epsilon":["dual"],"second_order":[False],
 #              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[False],"windowed":[False],"criterion":[None]}
-input_dict = {"v_fun":[V_pima_inidan_logit],"epsilon":[0.1],"second_order":[False],
-              "evolve_L":[10],"metric_name":["unit_e"],"dynamic":[True],"criterion":["nuts"],"windowed":[False]}
+
+input_dict = {"v_fun":[V_pima_inidan_logit],"epsilon":[0.1],"second_order":[False],"cov":["adapt"],"evolve_t":[2.3],
+              "metric_name":["diag_e"],"dynamic":[False],"criterion":[None],"windowed":[False]}
 
 
 # dual parameters input format
@@ -49,10 +50,10 @@ dual_arguments = [ep_dual_metadata_argument]
 #opt_arguments = [medium_opt_metadata_argument]
 opt_arguments = []
 other_arguments = other_default_arguments()
-
+adapt_cov_arguments = [adapt_cov_default_arguments(par_type="slow",dim=10)]
 #
 # tune_settings_dict = tuning_settings(dual_arguments,opt_arguments,other_arguments)
-tuning_settings_dict = tuning_settings([],[],[],[])
+tuning_settings_dict = tuning_settings([],[],adapt_cov_arguments,[])
 
 #print(tune_settings_dict)
 
