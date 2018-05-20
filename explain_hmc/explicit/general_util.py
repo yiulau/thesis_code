@@ -1,6 +1,4 @@
 import torch, math
-
-
 def logsumexp_torch(a,b):
     # stable way to calculate logsumexp
     # input torch tensor
