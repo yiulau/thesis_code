@@ -1,7 +1,6 @@
 import numpy
 import torch
 from torch.autograd import Variable
-
 def NUTS(q_init,epsilon,pi,leapfrog,NUTS_criterion):
     p = Variable(torch.randn(len(q_init)),requires_grad=True)
     q_left = Variable(q_init.data.clone(),requires_grad=True)

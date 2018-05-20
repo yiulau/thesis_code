@@ -2,7 +2,6 @@ from torch.autograd import Variable
 import torch, numpy, math
 from explicit.general_util import logsumexp, stable_sum
 
-
 def NUTS_tensor(q_init,epsilon,H_fun,leapfrog,max_tdepth):
     p = torch.randn(len(q_init))
     q_left = q_init.clone()
