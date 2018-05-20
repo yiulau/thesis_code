@@ -7,6 +7,7 @@ def logsumexp_torch(a,b):
     out = s + torch.log(torch.exp(a-s) + torch.exp(b-s))
     return(out)
 
+
 def logsumexp(a, b):
     # stable way to calculate logsumexp
     # input float
