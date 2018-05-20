@@ -208,7 +208,19 @@ class mcmc_sampler(object):
 
 
         return(out)
-
+    def get_samples(self,permuted=True):
+        # outputs numpy matrix
+        if permuted:
+            temp_list = []
+            for chain in self.store_chains:
+                temp_list.append(chain["chain_obj"].get_samples(warmup=self.warmup_per_chain))
+            output = temp_list[0]
+            if len(temp_list)>0:
+                for i in range(1,len(temp_list)):
+                    output = numpy.concatentate([output,temp_list[i]],axis=0)
+            return(output)
+        else:
+            raise ValueError("for now leave this")
 # metadata only matters after sampling has started
 class sampler_metadata(object):
     def __init___(self,mcmc_sampler_obj):
@@ -378,8 +390,8 @@ class one_chain_obj(object):
         temp = self.chain_setting["thin"]
         #print("yes")
         #exit()
-        #for counter in range(self.chain_setting["num_samples"]):
-        for counter in range(5):
+        for counter in range(self.chain_setting["num_samples"]):
+        #for counter in range(5):
             temp -= 1
             if not temp>0.1:
                 keep = True
@@ -400,12 +412,13 @@ class one_chain_obj(object):
                 out.iter = counter
                 self.adapt(sample_dict)
             #print("tune_l is {}".format(self.chain_setting["tune_l"]))
-            #print(out.flattened_tensor)
+            print(out.flattened_tensor)
             print("iter is {}".format(counter))
             print("epsilon val {}".format(self.tune_param_objs_dict["epsilon"].get_val()))
 #            print("evolve_L val {}".format(self.tune_param_objs_dict["evolve_L"].get_val()))
-#            print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
-        exit()
+            print("accept_rate {}".format(self.log_obj.store["accept_rate"]))
+            print("divergent is {}".format(self.log_obj.store["divergent"]))
+
         return()
     def add_sample(self,sample_dict):
         #print(self.log_obj.store)
@@ -413,6 +426,19 @@ class one_chain_obj(object):
 
     def is_to_disk_now(self,counter):
         return(False)
+
+    def get_samples(self,warmup=None):
+        if warmup is None:
+            warmup = self.chain_setting["warmup"]
+        num_out = len(self.store_samples) - warmup
+        assert num_out >=1
+        store_torch_matrix = torch.zeros(num_out,len(self.store_samples[0]["q"].flattened_tensor))
+        # load into tensor matrix
+        for i in range(num_out):
+            store_torch_matrix[i,:].copy_(self.store_samples[i+warmup]["q"].flattened_tensor)
+
+        store_matrix = store_torch_matrix.numpy()
+        return(store_matrix)
 
 # log_obj should keep information about dual_obj, and information about tuning parameters
 # created at the start of each transition. discarded at the end of each transition

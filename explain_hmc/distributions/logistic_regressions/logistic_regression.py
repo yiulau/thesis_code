@@ -5,8 +5,8 @@ from torch.autograd import Variable
 from explicit.general_util import logsumexp_torch
 
 
-precision_type = 'torch.DoubleTensor'
-#precision_type = 'torch.FloatTensor'
+#precision_type = 'torch.DoubleTensor'
+precision_type = 'torch.FloatTensor'
 torch.set_default_tensor_type(precision_type)
 
 class V_logistic_regression(V):

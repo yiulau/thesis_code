@@ -310,11 +310,12 @@ class V(nn.Module):
         if flattened_tensor is None:
             for i in range(self.num_var):
                 # convert to copy_ later
-                self.list_var[i].data = self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i])
+                self.list_var[i].data.copy_(self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
         else:
             for i in range(self.num_var):
                 # convert to copy_ later
-                self.list_var[i].data = self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i])
+                self.list_var[i].data.copy_(flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
+        self.load_param_to_flattened()
         return()
     def decides_if_flattened(self):
         self.need_flatten = False
@@ -341,6 +342,12 @@ class V(nn.Module):
             self.flattened_tensor = self.list_var[0].data
         return()
 
+    def load_param_to_flattened(self):
+        cur = 0
+        for i in range(self.num_var):
+            self.flattened_tensor[cur:(cur + self.store_lens[i])].copy_(self.list_var[i].data.view(self.store_shapes[i]))
+            cur = cur + self.store_lens[i]
+        return()
     def dq(self,q_flattened_tensor):
         self.load_flattened_tensor_to_param(q_flattened_tensor)
         g = grad(self.forward(), self.list_var)

@@ -16,8 +16,8 @@ dim = 8
 num_ob = 532
 stan_sampling = True
 
-address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
-
+#address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
+address = "/home/yiulau/work/thesis_code/explain_hmc/input_data/pima_india.csv"
 df = pd.read_csv(address,header=0,sep=" ")
 #print(df)
 dfm = df.as_matrix()
@@ -91,11 +91,11 @@ for i in range(chain_l):
     q.data = out[0].data
 totalt = time.time() - begin
 
-exit()
+
 store = store[burn_in:,]
 store = store.numpy()
 mcmc_samples = store
-correct = pickle.load(open("result_from_long_chain.pkl", 'rb'))
+correct = pickle.load(open("../result_from_long_chain.pkl", 'rb'))
 correct_mean = correct["correct_mean"]
 correct_cov = correct["correct_cov"]
 correct_diag_cov = correct_cov.diagonal()

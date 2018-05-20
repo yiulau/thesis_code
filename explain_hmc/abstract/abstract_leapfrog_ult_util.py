@@ -12,13 +12,26 @@ def abstract_leapfrog_ult(q,p,epsilon,Ham):
     # in this implementation the original (q,p) is modified after running leapfrog(q,p)
     # evaluate gradient 2 times
     # evaluate H 0 times
-
+    #print("yes")
+    #print(Ham.evaluate(q,p))
+    #out = {"q_tensor":q.flattened_tensor.clone(),"p_tensor":p.flattened_tensor.clone()}
+    #import pickle
+    #with open('debugqp.pkl', 'wb') as f:
+    #    pickle.dump(out, f)
+    #exit()
     p.flattened_tensor -= Ham.V.dq(q.flattened_tensor) * 0.5 * epsilon
+    #print("first p abstract{}".format(p.flattened_tensor))
+    #print("first H abstract {}".format(Ham.evaluate(q,p)))
     q.flattened_tensor += Ham.T.dp(p.flattened_tensor) * epsilon
+    #print("first q abstract {}".format(q.flattened_tensor))
+    #print("second H abstract {}".format(Ham.evaluate(q,p)))
     p.flattened_tensor -= Ham.V.dq(q.flattened_tensor) * 0.5 * epsilon
+    #print("second p abstract {}".format(p.flattened_tensor))
+    #print("final q abstract {}".format(q.flattened_tensor))
     p.load_flatten()
     q.load_flatten()
-
+    #print(Ham.evaluate(q,p))
+    #exit()
     return(q,p,gleapfrog_stat())
 
 
@@ -93,7 +106,7 @@ def abstract_HMC_alt_ult(epsilon, L, init_q,Ham,evol_t=None,careful=True):
     p = init_p.point_clone()
     current_H = Ham.evaluate(q,p)
     for i in range(L):
-        q,p = Ham.integrator(q, p, epsilon,Ham)
+        q,p,_ = Ham.integrator(q, p, epsilon,Ham)
         if careful:
             temp_H = Ham.evaluate(q, p)
             if(abs(temp_H-current_H)>1000 ):

@@ -32,17 +32,38 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
     q = init_q.point_clone()
     init_p = Ham.T.generate_momentum(q)
     p = init_p.point_clone()
+    #print(q.flattened_tensor)
+    #print(p.flattened_tensor)
     current_H = Ham.evaluate(q,p)
+
+    print("startH {}".format(current_H))
+
+
+    #newq,newp,stat = Ham.integrator(q, p, epsilon, Ham)
+    #print(q.flattened_tensor)
+    #print(p.flattened_tensor)
+    #newH = Ham.evaluate(newq,newp)
+    #print(newH)
+    #exit()
     #print(type(evolve_L))
     #exit()
+    #print(q.flattened_tensor)
+    #print(p.flattened_tensor)
     #print("epsilon is {}".format(epsilon))
     for i in range(evolve_L):
         q, p, stat = Ham.integrator(q, p, epsilon, Ham)
         divergent = stat.divergent
+        #print(q.flattened_tensor)
+        #print(p.flattened_tensor)
         if careful:
             temp_H = Ham.evaluate(q, p)
             #print("H is {}".format(temp_H))
             if(abs(temp_H-current_H)>1000 or divergent):
+                #print("yeye")
+                #print(i)
+                #print(temp_H)
+                #print(current_H)
+                #exit()
                 return_q = init_q
                 return_H = current_H
                 accept_rate = 0
@@ -64,6 +85,7 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
         else:
 
             accept_rate = math.exp(min(0,current_H - proposed_H))
+
             divergent = False
             if (numpy.random.random(1) < accept_rate):
                 accepted = True
@@ -77,6 +99,11 @@ def abstract_static_one_step(epsilon, init_q,Ham,evolve_L=None,evolve_t=None,log
                 return_H = current_H
     Ham.diagnostics.update_time()
         #print(log_obj is None)
+    endH = Ham.evaluate(q,p)
+    accept_rate = math.exp(min(0, current_H - endH))
+    #print("accept_rate {}".format(accept_rate))
+    #print("endH {}".format(Ham.evaluate(q,p)))
+    #exit()
     if not log_obj is None:
         log_obj.store.update({"prop_H":return_H})
         log_obj.store.update({"accepted":accepted})

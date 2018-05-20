@@ -8,15 +8,23 @@ def leapfrog_ult(q,p,epsilon,H_fun):
     # epsilon float
     # H_fun(q,p,return_float) function that maps (q,p) to its energy . Should return a pytorch Variable
     # in this implementation the original (q,p) is modified after running leapfrog(q,p)
+
     H = H_fun(q,p,return_float=False)
     H.backward()
     p.data -= q.grad.data * 0.5 * epsilon
+    #print("first p exact{}".format(p.data))
+    #print("first H exact{}".format(H_fun(q,p,True)))
     q.grad.data.zero_()
     q.data += epsilon * p.data
+    #print("first q exact {}".format(q.data))
+    #print("second H exact {}".format(H_fun(q,p,True)))
     H = H_fun(q,p,return_float=False)
     H.backward()
     p.data -= q.grad.data * 0.5 * epsilon
+    #print("second p exact {}".format(p.data))
+    #print("final q exact {}".format(q.data))
     q.grad.data.zero_()
+
     return(q,p)
 
 def leapfrog_ult_tensor(q,p,epsilon,V,T):
@@ -112,6 +120,8 @@ def HMC_alt_ult(epsilon, L, current_q, leapfrog, H_fun,generate_momentum):
             return_q = current_q
             return_H = current_H
     print("current_H {},propsed_H{}".format(current_H,proposed_H))
+    print("accept_rate {}".format(accept_rate))
+    exit()
     return(return_q,return_H,accepted,accept_rate,divergent)
 
 def HMC_alt_ult_tensor(epsilon, L, current_q, leapfrog, V,T,H):

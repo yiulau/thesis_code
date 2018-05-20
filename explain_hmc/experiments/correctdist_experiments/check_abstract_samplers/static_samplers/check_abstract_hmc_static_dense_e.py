@@ -38,7 +38,7 @@ print(mean_check)
 print(cov_check)
 print(pc_mean)
 print(pc_cov)
-
+exit()
 out = sampler2.start_sampling()
 
 mcmc_samples = sampler2.get_samples(permuted=True)
