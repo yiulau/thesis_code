@@ -5,6 +5,7 @@ from abstract.abstract_nuts_util import *
 from abstract.metric import metric
 from abstract.abstract_class_Ham import Hamiltonian
 import time
+
 # this object is assumed to be initiated properly
 class sampler_one_step(object):
     #def __init__(self,tune_dict,tune_param_obj_dict,init_point):
