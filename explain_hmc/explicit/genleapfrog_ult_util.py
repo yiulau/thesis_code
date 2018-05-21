@@ -85,6 +85,7 @@ def getH_tensor(q,V):
 # return g,H,dH
 def getdH(q,V):
     # output: dH - pytorch tensor where
+    #print("first q explicit{}".format(q.data.clone()))
     g,H_ = getH(q,V)
     dim = len(q)
     if q.data.type() == "torch.cuda.FloatTensor":
@@ -94,7 +95,7 @@ def getdH(q,V):
     for i in range(dim):
         for j in range(dim):
             dH[:, i, j] = grad(H_[i, j], q, create_graph=False,retain_graph=True)[0].data
-
+    #print("dV explicit{}".format(g.data))
     return(g,H_,dH)
 
 def getdH_tensor(q,V):
@@ -240,15 +241,25 @@ def genleapfrog_wrap(alpha,delta,V):
         return generalized_leapfrog(q,p,ep,alpha,delta,V)
     return(inside)
 
-def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
-    #
+def generalized_leapfrog(q,p,epsilon,alpha,delta,V,debug_dict=None):
+    #print("first q explicit {}".format(q.data))
+    #print("first p explicit {}".format(p.data))
+
     #lam,Q = eigen(getH(q,V).data)
     #dV,H_ = getH(q,V)
     #dH_i = getdH_specific(q,V,H_)
     #dV = getdV(q,V,True)
     dV,H_,dH = getdH(q,V)
+    #print("dH explicit{}".format(dH))
+
     lam, Q = eigen(H_.data)
+
+    #print("second q explicit {}".format(q.data))
+    #print("second p explicit {}".format(p.data))
     p.data -= epsilon * 0.5 * dphidq(lam,alpha,dH,Q,dV.data)
+
+    #print("third q explicit {}".format(q.data))
+    #print("third p explicit {}".format(p.data))
     rho = p.data.clone()
     pprime = p.data.clone()
     deltap = delta + 0.5
@@ -264,7 +275,9 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     deltaq = delta + 0.5
 
     _,H_ = getH(sigma,V)
+
     olam,oQ = eigen(H_.data)
+
     #olam,oQ = eigen(getH(sigma,V).data)
     count = 0
     while (deltaq > delta) and (count < 5):
@@ -282,6 +295,7 @@ def generalized_leapfrog(q,p,epsilon,alpha,delta,V):
     #lam,Q = eigen(getH(q,V).data)
     p.data -= 0.5 * dtaudq(p.data,dH,Q,lam,alpha) * epsilon
     p.data -= 0.5 * dphidq(lam,alpha,dH,Q,dV.data) * epsilon
+    debug_dict.update({"explicit":p.data.clone()})
     return(q,p)
 
 def generalized_leapfrog_tensor(q,p,epsilon,alpha,delta,V):

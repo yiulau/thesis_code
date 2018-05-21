@@ -44,12 +44,12 @@ class T_softabs_e(T):
         alpha = self.metric.msoftabsalpha
         N = self.dim
         Jm = J(lam, alpha, self.dim)
-        print("J {}".format(Jm))
-        print("lam {}".format(lam))
+        #print("J {}".format(Jm))
+        #print("lam {}".format(lam))
         Dm = D(p_flattened_tensor, Q, lam, alpha)
-        print("D {}".format(Dm))
+        #print("D {}".format(Dm))
         M = torch.mm(Q, torch.mm(Dm, torch.mm(Jm, torch.mm(Dm, torch.t(Q)))))
-        print("M {}".format(M))
+        #print("M {}".format(M))
         delta = torch.zeros(N)
         for i in range(N):
             delta[i] = 0.5 * torch.trace(-torch.mm(M, dH[i, :, :]))

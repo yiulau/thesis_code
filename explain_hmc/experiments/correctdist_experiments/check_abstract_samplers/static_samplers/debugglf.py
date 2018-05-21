@@ -14,6 +14,9 @@ from abstract.abstract_genleapfrog_ult_util import generalized_leapfrog as abstr
 from abstract.abstract_class_Ham import Hamiltonian
 from abstract.metric import metric
 from distributions.logistic_regressions.pima_indian_logisitic_regression import V_pima_inidan_logit
+seedid = 33
+numpy.random.seed(seedid)
+torch.manual_seed(seedid)
 #y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 #X_np = numpy.random.randn(num_ob,dim)
 address = "/home/yiulau/work/thesis_code/explain_hmc/input_data/pima_india.csv"
@@ -88,20 +91,28 @@ print("abstract H {}".format(Ham.evaluate(q_point,p_point)))
 print("input q diff{}".format((q.data-q_point.flattened_tensor).sum()))
 print("input p diff {}".format((p.data-p_point.flattened_tensor).sum()))
 
+debug_dict = {"abstract":None,"explicit":None}
 
 for i in range(10):
-    outq, outp = explicit_generalized_leapfrog(q, p, 0.1, alpha, 0.1, V)
-    outq_a, outp_a, stat = abstract_generalized_leapfrog(q_point, p_point, 0.01, Ham)
+    outq, outp = explicit_generalized_leapfrog(q, p, 0.1, alpha, 0.1, V,debug_dict=debug_dict)
+    outq_a, outp_a, stat = abstract_generalized_leapfrog(q_point, p_point, 0.1, Ham,debug_dict=debug_dict)
     q,p = outq,outp
     q_point,p_point = outq_a,outp_a
 #outq,outp = explicit_generalized_leapfrog(q,p,0.1,alpha,0.1,V)
 #outq_a,outp_a,stat = abstract_generalized_leapfrog(q_point,p_point,0.1,Ham)
+# compare dV
+#print(debug_dict)
+
+#diff_dV = ((debug_dict["abstract"]-debug_dict["explicit"])*(debug_dict["abstract"]-debug_dict["explicit"])).sum()
+#print(diff_dV)
+#exit()
+
 
 diffq = ((outq.data - outq_a.flattened_tensor)*(outq.data - outq_a.flattened_tensor)).sum()
 diffp = ((outp.data - outp_a.flattened_tensor)*(outp.data - outp_a.flattened_tensor)).sum()
 print("diff outq {}".format(diffq))
 print("diff outp {}".format(diffp))
-
+exit()
 #print(outp.data)
 #print(outp_a.flattened_tensor)
 print("exact")

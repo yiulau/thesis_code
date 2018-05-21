@@ -17,7 +17,7 @@ class V_logistic_regression(V):
     def V_setup(self):
         self.dim = self.X_np.shape[1]
         self.num_ob = self.X_np.shape[0]
-        self.explicit_gradient = True
+        self.explicit_gradient = False
         self.need_higherorderderiv = True
         self.beta = nn.Parameter(torch.zeros(self.dim),requires_grad=True)
         self.y = Variable(torch.from_numpy(self.y_np),requires_grad=False).type(precision_type)

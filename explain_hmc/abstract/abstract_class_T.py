@@ -45,7 +45,7 @@ class T(object):
     def load_point(self,p_point):
         for i in range(self.num_var):
             # convert to copy_ later
-            self.list_var[i].data.copy_(p_point.list_var[i].data)
+            self.list_var[i].data.copy_(p_point.list_tensor[i])
         self.flattened_tensor.copy_(p_point.flattened_tensor)
         return()
 

@@ -15,7 +15,9 @@ alp =1e6
 dim = 8
 num_ob = 532
 stan_sampling = True
-
+seedid = 33
+np.random.seed(seedid)
+torch.manual_seed(seedid)
 #address = "/Users/patricklau/PycharmProjects/thesis_code/explain_hmc/input_data/pima_india.csv"
 address = "/home/yiulau/work/thesis_code/explain_hmc/input_data/pima_india.csv"
 df = pd.read_csv(address,header=0,sep=" ")

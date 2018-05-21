@@ -44,6 +44,17 @@ class V(nn.Module):
             o.backward()
         else:
             self.load_explicit_gradient()
+
+    def dq(self,q_flattened_tensor):
+        self.load_flattened_tensor_to_param(q_flattened_tensor)
+        g = grad(self.forward(), self.list_var)
+        out = torch.zeros(len(q_flattened_tensor))
+        cur = 0
+        for i in range(self.num_var):
+            out[cur:(cur + self.store_lens[i])] = g[i].data.view(self.store_lens[i])
+            cur = cur + self.store_lens[i]
+        return(out)
+
     def getdV(self,q=None):
         # return list of pytorch variables containing the gradient
         if not q is None:
@@ -80,6 +91,7 @@ class V(nn.Module):
             H = Variable(torch.zeros(self.dim, self.dim))
             for i in range(self.dim):
                 H[i, :] = grad(g[i], self.list_var, create_graph=True)[0]
+            self.load_gradient([g])
         # output: H - Pytorch Variable
         # repetitive. only need to compute the upper or lower triangular part than flip
         else:
@@ -90,7 +102,7 @@ class V(nn.Module):
                 for j in range(self.num_var):
                     H[i,j] = self.block_2nd_deriv(g[i],self.list_var[j],True,True)
 
-        self.load_gradient(g)
+            self.load_gradient(g)
         self.load_Hessian(H)
         return (g,H)
     # reimplement if need to get exact
@@ -106,7 +118,7 @@ class V(nn.Module):
                 H = Variable(torch.zeros(self.dim, self.dim))
                 for i in range(self.dim):
                     H[i, :] = grad(g[i], self.list_var, create_graph=True)[0]
-
+                self.load_gradient([g])
             # output: H - Pytorch Variable
             # repetitive. only need to compute the upper or lower triangular part than flip
             else:
@@ -116,7 +128,7 @@ class V(nn.Module):
                 for i in range(self.num_var):
                     for j in range(self.num_var):
                         H[i,j] = self.block_2nd_deriv(g[i],self.list_var[j],True,True)
-            self.load_gradient(g)
+                self.load_gradient(g)
             self.load_Hessian(H)
 
         return (self.gradient_tensor,self.Hessian_tensor)
@@ -151,10 +163,12 @@ class V(nn.Module):
                 for j in range(self.num_var):
                     for k in range(self.num_var):
                         dH[i,j,k] = self.block_3rd_deriv(H[i,j],self.list_var[k],True,True)
-        self.load_dH(dH)
+
+        #self.load_dH(dH)
         return(g,H,dH)
     def getdH_tensor(self,q=None):
         # takes anything but outputs tensor
+        #print("first q abstract {}".format(q.flattened_tensor.clone()))
         if not q is None:
             self.load_point(q)
         if self.explicit_gradient:
@@ -163,11 +177,14 @@ class V(nn.Module):
             self.dH_tensor.copy_(self.load_explicit_dH())
         else:
             if not self.need_flatten:
+
                 g, H = self.getH()
+                #print("abstract dV {}".format(g.data))
                 dH = torch.zeros(self.dim, self.dim, self.dim)
                 for i in range(self.dim):
                     for j in range(self.dim):
                         dH[:, i, j] = grad(H[i, j], self.list_var, create_graph=False, retain_graph=True)[0].data
+                self.load_gradient([g])
             else:
                 g,H = self.getH()
                 dH = numpy.empty((self.num_var,self.num_var,self.num_var),dtype=numpy.ndarray)
@@ -176,10 +193,10 @@ class V(nn.Module):
                     for j in range(self.num_var):
                         for k in range(self.num_var):
                             dH[i,j,k] = self.block_3rd_deriv(H[i,j],self.list_var[k],True,True)
-            self.load_gradient(g)
+                self.load_gradient(g)
             self.load_Hessian(H)
             self.load_dH(dH)
-
+        #print("abstract dV {}".format(self.gradient_tensor))
         return(self.gradient_tensor,self.Hessian_tensor,self.dH_tensor)
 
 
@@ -220,6 +237,7 @@ class V(nn.Module):
             var1_shape_container[index] = self.block_2nd_deriv(var1[index],var2,retain_graph,create_graph)
         return(var1_shape_container)
     def load_gradient(self,list_g):
+        #print("abstract dV {}".format(list_g.data))
         if not self.need_flatten:
             self.gradient_tensor.copy_(list_g[0].data)
         else:
@@ -305,18 +323,7 @@ class V(nn.Module):
             raise ValueError("")
         return (store)
 
-    def load_flattened_tensor_to_param(self,flattened_tensor=None):
-        cur = 0
-        if flattened_tensor is None:
-            for i in range(self.num_var):
-                # convert to copy_ later
-                self.list_var[i].data.copy_(self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
-        else:
-            for i in range(self.num_var):
-                # convert to copy_ later
-                self.list_var[i].data.copy_(flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
-        self.load_param_to_flattened()
-        return()
+
     def decides_if_flattened(self):
         self.need_flatten = False
         self.list_var = list(self.parameters())
@@ -341,22 +348,25 @@ class V(nn.Module):
         else:
             self.flattened_tensor = self.list_var[0].data
         return()
-
+    def load_flattened_tensor_to_param(self,flattened_tensor=None):
+        cur = 0
+        if flattened_tensor is None:
+            for i in range(self.num_var):
+                # convert to copy_ later
+                self.list_var[i].data.copy_(self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
+        else:
+            for i in range(self.num_var):
+                # convert to copy_ later
+                self.list_var[i].data.copy_(flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
+            self.load_param_to_flattened()
+        return()
     def load_param_to_flattened(self):
         cur = 0
         for i in range(self.num_var):
             self.flattened_tensor[cur:(cur + self.store_lens[i])].copy_(self.list_var[i].data.view(self.store_shapes[i]))
             cur = cur + self.store_lens[i]
         return()
-    def dq(self,q_flattened_tensor):
-        self.load_flattened_tensor_to_param(q_flattened_tensor)
-        g = grad(self.forward(), self.list_var)
-        out = torch.zeros(len(q_flattened_tensor))
-        cur = 0
-        for i in range(self.num_var):
-            out[cur:(cur + self.store_lens[i])] = g[i].data.view(self.store_lens[i])
-            cur = cur + self.store_lens[i]
-        return(out)
+
     # def create_T(self,metric):
     #     # metric object- includes information about type and cov or diag_v, or softabs
     #     self.T = T(metric)
@@ -365,12 +375,30 @@ class V(nn.Module):
     #
     #     return()
     def load_point(self,q_point):
-        for i in range(self.num_var):
-            # convert to copy_ later
-            self.list_var[i].data.copy_(q_point.list_var[i].data)
-        self.flattened_tensor.copy_(q_point.flattened_tensor)
-
+        #print("point syncro {}".format(q_point.assert_syncro()))
+        if self.need_flatten:
+            self.flattened_tensor.copy_(q_point.flattened_tensor)
+            self.load_param_to_flattened()
+        else:
+            self.flattened_tensor.copy_(q_point.flattened_tensor)
+            #q_point.assert_syncro()
+        #print("self syncro {}".format(self.assert_syncro()))
         return()
+
+    def assert_syncro(self):
+        # check that list_var and flattened_tensor hold the same value
+        temp = self.flattened_tensor.clone()
+        cur = 0
+        for i in range(self.num_var):
+            temp[cur:(cur + self.store_lens[i])].copy_(self.list_var[i].data.view(self.store_shapes[i]))
+            cur = cur + self.store_lens[i]
+        diff = ((temp - self.flattened_tensor)*(temp-self.flattened_tensor) ).sum()
+        #print(diff)
+        if diff > 1e-6:
+            out = False
+        else:
+            out = True
+        return(out)
 
     def prepare_prior(self,prior_dict):
         if prior_dict["has_hypar"]:

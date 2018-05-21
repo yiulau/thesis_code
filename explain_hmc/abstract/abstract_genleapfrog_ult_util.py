@@ -19,15 +19,24 @@ def genleapfrog_wrap(delta,H):
         return generalized_leapfrog(q,p,ep,delta,H)
     return(inside)
 
-def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
+def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1,debug_dict=None):
     # input output point object
     # can take anything but should output tensor
+    #print("first q abstract {}".format(q.flattened_tensor))
+    #print("first p abstract {}".format(p.flattened_tensor))
     stat = gleapfrog_stat()
     dV,H_,dH = Ham.V.getdH_tensor(q)
+    #print("dH abstract {}".format(dH))
+
     lam, Q = eigen(H_)
+
+    #print("second q abstract {}".format(q.flattened_tensor))
+    #print("second p abstract {}".format(p.flattened_tensor))
     # dphidq outputs and inputs takes flattened gradient in flattened form
     p.flattened_tensor -= epsilon * 0.5 * Ham.T.dphidq(lam,dH,Q,dV)
 
+    #print("third q abstract {}".format(q.flattened_tensor))
+    #print("third p abstract {}".format(p.flattened_tensor))
     p.load_flatten()
     rho = p.flattened_tensor.clone()
     pprime = p.flattened_tensor.clone()
@@ -38,10 +47,10 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
         # dtaudq returns gradient in flattened form
         pprime.copy_(rho - epsilon * 0.5 * Ham.T.dtaudq(p.flattened_tensor,dH,Q,lam))
         deltap = torch.max(torch.abs(p.flattened_tensor-pprime))
-
+        p.flattened_tensor.copy_(pprime)
+        p.load_flatten()
         count = count + 1
     if deltap>delta:
-
         stat.divergent = True
         stat.first_divergent = True
         #print("pprime {}".format(pprime))
@@ -51,8 +60,7 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
         return (q, p, stat)
     else:
         stat.first_divergent = False
-        p.flattened_tensor.copy_(pprime)
-        p.load_flatten()
+
 
 
     #print(first_fi_divergent)
@@ -62,7 +70,9 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
     deltaq = delta + 0.5
 
     _,H_ = Ham.V.getH_tensor(sigma)
+
     olam,oQ = eigen(H_)
+
     count = 0
 
 
@@ -82,8 +92,6 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
         return(q,p,stat)
     else:
         stat.second_divergent = False
-        q.flattened_tensor.copy_(qprime)
-        q.load_flatten()
     #print("H is {}".format(Ham.evaluate(q,p)))
 
 
@@ -99,6 +107,7 @@ def generalized_leapfrog(q,p,epsilon,Ham,delta=0.1):
 
     p.load_flatten()
     #print("yes")
+    debug_dict.update({"abstract": p.flattened_tensor.clone()})
     return(q,p,stat)
 
 def generalized_leapfrog_softabsdiag(q,p,epsilon,Ham,delta=0.1):

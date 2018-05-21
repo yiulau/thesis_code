@@ -11,7 +11,9 @@ dim = 4
 num_ob = 25
 chain_l = 500
 burn_in = 100
-
+seedid = 33
+numpy.random.seed(seedid)
+torch.manual_seed(seedid)
 
 #y_np= numpy.random.binomial(n=1,p=0.5,size=num_ob)
 #X_np = numpy.random.randn(num_ob,dim)

@@ -1,6 +1,6 @@
 from torch.autograd import Variable
 import numpy, torch
-
+# how a point is defined depends on the problem at hand. if nn then we might not want an extra copy of the weights
 class point(object):
     # numpy vector of pytorch variables
     # need to be able to calculate  norm(q-p)_2 (esjd)
@@ -10,47 +10,69 @@ class point(object):
     # sum load (target, summant)
     # return list of tensors
     # dot product
+    # need_flatten depends on metric. anything other than unit_e and diag_e need_flatten = True
 
-    def __init__(self,V=None,T=None,list_var=None,list_tensor=None,flattened_tensor=None,need_var=None):
+    def __init__(self,V=None,T=None,list_var=None,list_tensor=None,pointtype=None,
+                 need_flatten=True):
         self.V = V
         self.T = T
-        if not V==None:
+        self.list_var= list_var
+        self.list_tensor = list_tensor
+        self.pointtype = pointtype
+        self.need_flatten = need_flatten
+        if not V is None:
             self.pointtype = "q"
+            target_fun_obj = V
+            self.need_flatten = target_fun_obj.need_flatten
+            self.num_var = target_fun_obj.num_var
+            source_list_tensor = target_fun_obj.list_tensor
         elif not T is None:
             self.pointtype = "p"
-        else:
-            raise ValueError("one of V,T must be supplied")
-
-        if self.pointtype == "p":
             target_fun_obj = T
-        elif self.pointtype =="q":
-            target_fun_obj = V
-        else:
-            raise ValueError("should not get here")
-
-        self.need_flatten = target_fun_obj.need_flatten
-        self.num_var = target_fun_obj.num_var
-        if list_var is None:
-            source_list_var = target_fun_obj.list_var
-        else:
-            source_list_var = list_var
-        if list_tensor is None:
+            self.need_flatten = target_fun_obj.need_flatten
+            self.num_var = target_fun_obj.num_var
             source_list_tensor = target_fun_obj.list_tensor
         else:
-            source_list_tensor = list_tensor
-        self.need_var = True
-        self.list_var = numpy.empty(len(source_list_var), dtype=type(source_list_var[0]))
-        for i in range(len(source_list_var)):
-            self.list_var[i] = Variable(source_list_var[i].data.clone(), requires_grad=False)
-        #self.list_var = self.T.list_var
-        self.list_tensor = numpy.empty(len(source_list_tensor),dtype=type(source_list_tensor[0]))
-        for i in range(len(target_fun_obj.list_tensor)):
-            self.list_tensor[i] = source_list_tensor[i].clone()
-        if flattened_tensor is None:
-            self.flattened_tensor = target_fun_obj.flattened_tensor.clone()
-        else:
-            self.flattened_tensor = flattened_tensor.clone()
+            if list_var is None and list_tensor is None:
+                raise ValueError("one of V,T or a list of variables, or a list of tensors must be supplied")
+            else:
+                if not list_var is None and not list_tensor is None:
+                    raise ValueError("can't supply both list_tensor and list_var. need exactly one ")
+                assert pointtype in ("p","q")
+                self.pointtype = pointtype
 
+                assert not list_tensor is None
+                self.num_var = len(list_tensor)
+                if list_tensor is None:
+                    source_list_tensor = []
+                    assert not list_var is None
+                    for i in range(len(list_var)):
+                        source_list_tensor.append(list_var[i].data)
+                else:
+                    source_list_tensor = list_tensor
+
+
+
+
+
+        self.list_tensor = numpy.empty(len(source_list_tensor),dtype=type(source_list_tensor[0]))
+        for i in range(len(source_list_tensor)):
+            self.list_tensor[i] = source_list_tensor[i].clone()
+        self.store_lens = []
+        self.store_shapes = []
+        for i in range(len(self.list_tensor)):
+            shape = list(self.list_tensor[i].shape)
+            length = int(numpy.prod(shape))
+            self.store_shapes.append(shape)
+            self.store_lens.append(length)
+        self.dim = sum(self.store_lens)
+        if need_flatten:
+            self.flattened_tensor = torch.zeros(self.dim)
+            self.load_param_to_flatten()
+        else:
+            assert len(self.list_tensor[0])==self.dim
+            self.flattened_tensor = self.list_tensor[0]
+        self.syncro = self.assert_syncro()
     def load_flatten(self):
         if self.need_flatten:
             self.load_flattened_tensor_to_param()
@@ -59,8 +81,35 @@ class point(object):
         return()
 
     def point_clone(self):
-        out = point(V=self.V,T=self.T,list_var=self.list_var,list_tensor=self.list_tensor,flattened_tensor=self.flattened_tensor,need_var=self.need_var)
+        out = point(V=self.V,T=self.T,list_var=self.list_var,list_tensor=self.list_tensor,pointtype=self.pointtype)
         return(out)
+
+    def assert_syncro(self):
+        # check that list_tensor and flattened_tensor hold the same value
+        temp = self.flattened_tensor.clone()
+        cur = 0
+        for i in range(self.num_var):
+            temp[cur:(cur + self.store_lens[i])].copy_(self.list_tensor[i].view(self.store_shapes[i]))
+            cur = cur + self.store_lens[i]
+        diff = ((temp - self.flattened_tensor) * (temp - self.flattened_tensor)).sum()
+        if diff > 1e-6:
+            out = False
+        else:
+            out = True
+        return (out)
+
+    def load_flattened_tensor_to_param(self):
+        cur = 0
+        for i in range(self.num_var):
+            self.list_tensor[i].copy_(self.flattened_tensor[cur:(cur + self.store_lens[i])].view(self.store_shapes[i]))
+            cur = cur + self.store_lens[i]
+
+    def load_param_to_flatten(self):
+        cur = 0
+        for i in range(self.num_var):
+            self.flattened_tensor[cur:(cur + self.store_lens[i])].copy_(self.list_tensor[i].view(-1))
+            cur = cur + self.store_lens[i]
+
 
     #def dot_product(self,another_point):
     #    out = 0
