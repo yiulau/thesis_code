@@ -1,4 +1,5 @@
 import numpy,torch,math
+
 class metric(object):
     # should store information like Cov, vec. Whether its for flattened tensor defined V. The cov and var should be in
     # flattened version if necessary
